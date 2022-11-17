@@ -1,6 +1,7 @@
-import tables, strformat
+import tables, strformat, strutils
 
-const nostr = ""
+const splitChar = '|'
+const noString = ""
 
 type
   LineKind* = enum
@@ -17,19 +18,19 @@ type
     procedures: Table[string, proc(arg: string)]
 
 func stop*(): Line =
-  Line(kind: Stop, info: nostr, content: nostr)
+  Line(kind: Stop, info: noString, content: noString)
 
 func text*(info, content: string): Line =
   Line(kind: Text, info: info, content: content)
 
 func text*(content: string): Line =
-  Line(kind: Text, info: nostr, content: content)
+  Line(kind: Text, info: noString, content: content)
 
 func label*(info: string): Line =
-  Line(kind: Label, info: info, content: nostr)
+  Line(kind: Label, info: info, content: noString)
 
 func jump*(info: string): Line =
-  Line(kind: Jump, info: info, content: nostr)
+  Line(kind: Jump, info: info, content: noString)
 
 func menu*(info, content: string): Line =
   Line(kind: Menu, info: info, content: content)
@@ -38,10 +39,16 @@ func variable*(info, content: string): Line =
   Line(kind: Variable, info: info, content: content)
 
 func check*(info: string): Line =
-  Line(kind: Menu, info: info, content: nostr)
+  Line(kind: Menu, info: info, content: noString)
 
 func comment*(info: string): Line =
-  Line(kind: Comment, info: info, content: nostr)
+  Line(kind: Comment, info: info, content: noString)
+
+func splitInfo*(self: Line): seq[string] =
+  self.info.split(splitChar)
+
+func splitContent*(self: Line): seq[string] =
+  self.content.split(splitChar)
 
 func `$`*(self: Line): string =
   &"{self.kind},\"{self.info}\",\"{self.content}\""
@@ -50,6 +57,7 @@ func `$`*(self: Line): string =
 
 func setIndex(self: Dialogue, val: int) =
   if val >= self.lines.len: self.index = self.lines.len - 1
+  elif val < 0: self.index = 0
   else: self.index = val
 
 func reload(self: Dialogue) =
@@ -63,6 +71,10 @@ func reload(self: Dialogue) =
     self.reload()
   else:
     discard
+
+template setIndexAndReload(self: Dialogue, val: int): untyped =
+  self.setIndex(val)
+  self.reload()
 
 func newDialogue*(lines: seq[Line]): Dialogue =
   result = Dialogue(lines: lines)
@@ -83,15 +95,28 @@ func line*(self: Dialogue): Line =
   self.lines[self.index]
 
 func update*(self: Dialogue) =
-  self.setIndex(self.index + 1)
-  self.reload()
+  self.setIndexAndReload(self.index + 1)
 
 func reset*(self: Dialogue) =
-  self.setIndex(0)
-  self.reload()
+  self.setIndexAndReload(0)
+
+func jump*(self: Dialogue, index: int) =
+  self.setIndexAndReload(index)
+
+func jump*(self: Dialogue, label: string) =
+  self.setIndexAndReload(self.labels[label])
 
 func hasStop*(self: Dialogue): bool =
   self.lines[self.index].kind == Stop
+
+func hasMenu*(self: Dialogue): bool =
+  self.lines[self.index].kind == Menu
+
+func choices*(self: Dialogue): seq[string] =
+  self.line.splitContent
+
+func choose*(self: Dialogue, choice: int) =
+  self.jump(self.lines[self.index].splitInfo[choice])
 
 func `$`*(self: Dialogue): string =
   result = ""
