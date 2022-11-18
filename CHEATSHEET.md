@@ -7,6 +7,7 @@
 Procedures
 
 ```nim
+proc calc*(str: string): int
 func stop*(): Line
 func text*(info, content: string): Line
 func text*(content: string): Line
@@ -22,6 +23,7 @@ func `$`*(self: Line): string
 
 func newDialogue*(lines: seq[Line]): Dialogue
 func newDialogue*(lines: varargs[Line]): Dialogue
+func newDialogue*[N](lines: array[N, Line]): Dialogue
 func line*(self: Dialogue): Line
 func update*(self: Dialogue)
 func reset*(self: Dialogue)

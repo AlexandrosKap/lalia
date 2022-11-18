@@ -1,12 +1,13 @@
-import tables, strformat, strutils
+import tables, strformat, strutils, math
 
 const splitChar = '|'
-const noString = ""
+const varChar = '$'
+const nostr = ""
 
 type
   LineError* = object of CatchableError
   LineKind* = enum
-    Stop, Text, Label, Jump, Menu, Variable, Check, Comment
+    Stop, Comment, Text, Label, Jump, Menu, Variable, Check
   Line* = object
     kind*: LineKind
     info*: string
@@ -18,20 +19,74 @@ type
     variables: Table[string, string]
     procedures: Table[string, proc(arg: string)]
 
+func expr(a: int, op: char, b: int): int =
+  case op:
+  of '+': a + b
+  of '-': a - b
+  of '*': a * b
+  of '/': a div b
+  of '%': a mod b
+  of '<': int(a < b)
+  of '>': int(a > b)
+  of '=': int(a == b)
+  of '!': int(a != b)
+  else: 0
+
+proc calc*(str: string): int =
+  let args = str.replace(" ", "") & "+0"
+  var
+    stack = @[0]
+    buffer = ""
+    lop = ' '
+    rop = '+'
+    i = 0
+  while i < args.len:
+    if args[i].isDigit:
+      buffer.add(args[i])
+    else:
+      try:
+        lop = rop
+        rop = args[i]
+        var n = 0
+        if buffer.len > 0:
+          n = buffer.parseInt
+        elif rop == '(' and i + 1 < args.len:
+          # Find the position of ')'.
+          var pcount = 1
+          var j = i + 1
+          while j < args.len:
+            if args[j] == '(': pcount += 1
+            elif args[j] == ')': pcount -= 1
+            if pcount == 0: break
+            j += 1
+          # Skip the characters in parentheses.
+          n = calc(args[i + 1 ..< j])
+          i = j + 1
+          rop = args[i]
+        # Calculate expression.
+        case lop
+        of '+': stack.add(n)
+        of '-': stack.add(-n)
+        else: stack[^1] = expr(stack[^1], lop, n)
+        buffer.setLen(0)
+      except: raise
+    i += 1
+  stack.sum
+
 func stop*(): Line =
-  Line(kind: Stop, info: noString, content: noString)
+  Line(kind: Stop, info: nostr, content: nostr)
 
 func text*(info, content: string): Line =
   Line(kind: Text, info: info, content: content)
 
 func text*(content: string): Line =
-  Line(kind: Text, info: noString, content: content)
+  Line(kind: Text, info: nostr, content: content)
 
 func label*(info: string): Line =
-  Line(kind: Label, info: info, content: noString)
+  Line(kind: Label, info: info, content: nostr)
 
 func jump*(info: string): Line =
-  Line(kind: Jump, info: info, content: noString)
+  Line(kind: Jump, info: info, content: nostr)
 
 func menu*(info, content: string): Line =
   Line(kind: Menu, info: info, content: content)
@@ -40,10 +95,10 @@ func variable*(info, content: string): Line =
   Line(kind: Variable, info: info, content: content)
 
 func check*(info: string): Line =
-  Line(kind: Menu, info: info, content: noString)
+  Line(kind: Menu, info: info, content: nostr)
 
 func comment*(info: string): Line =
-  Line(kind: Comment, info: info, content: noString)
+  Line(kind: Comment, info: info, content: nostr)
 
 func splitInfo*(self: Line): seq[string] =
   self.info.split(splitChar)
@@ -56,6 +111,13 @@ func `$`*(self: Line): string =
 
 #
 
+func setIndex(self: Dialogue, val: int)
+func reload(self: Dialogue)
+
+template setIndexAndReload(self: Dialogue, val: int): untyped =
+  self.setIndex(val)
+  self.reload()
+
 func setIndex(self: Dialogue, val: int) =
   if val >= self.lines.len: self.index = self.lines.len - 1
   elif val < 0: self.index = 0
@@ -65,17 +127,16 @@ func reload(self: Dialogue) =
   let line = self.lines[self.index]
   case line.kind:
   of Label:
-    self.setIndex(self.index + 1)
-    self.reload()
+    self.setIndexAndReload(self.index + 1)
   of Jump:
-    self.setIndex(self.labels[line.info])
-    self.reload()
-  else:
+    self.setIndexAndReload(self.labels[line.info])
+  of Variable:
+    self.variables[line.info] = line.content # TODO: Add proc support.
+    self.setIndexAndReload(self.index + 1)
+  of Check:
     discard
-
-template setIndexAndReload(self: Dialogue, val: int): untyped =
-  self.setIndex(val)
-  self.reload()
+  of Stop, Comment, Text, Menu:
+    discard
 
 template newDialogueTemplate[T: seq[Line] | varargs[Line]](lines: T): untyped =
   result = Dialogue()
@@ -89,6 +150,9 @@ func newDialogue*(lines: seq[Line]): Dialogue =
   newDialogueTemplate(lines)
 
 func newDialogue*(lines: varargs[Line]): Dialogue =
+  newDialogueTemplate(lines)
+
+func newDialogue*[N](lines: array[N, Line]): Dialogue =
   newDialogueTemplate(lines)
 
 func line*(self: Dialogue): Line =
