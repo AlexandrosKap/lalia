@@ -4,6 +4,7 @@ const splitChar = '|'
 const noString = ""
 
 type
+  LineError* = object of CatchableError
   LineKind* = enum
     Stop, Text, Label, Jump, Menu, Variable, Check, Comment
   Line* = object
@@ -76,20 +77,19 @@ template setIndexAndReload(self: Dialogue, val: int): untyped =
   self.setIndex(val)
   self.reload()
 
-func newDialogue*(lines: seq[Line]): Dialogue =
-  result = Dialogue(lines: lines)
-  for i, line in lines:
-    if line.kind == Label: result.labels[line.info] = i
-  result.lines.add(stop())
-  result.reload()
-
-func newDialogue*(lines: varargs[Line]): Dialogue =
+template newDialogueTemplate[T: seq[Line] | varargs[Line]](lines: T): untyped =
   result = Dialogue()
   for i, line in lines:
     result.lines.add(line)
     if line.kind == Label: result.labels[line.info] = i
   result.lines.add(stop())
   result.reload()
+
+func newDialogue*(lines: seq[Line]): Dialogue =
+  newDialogueTemplate(lines)
+
+func newDialogue*(lines: varargs[Line]): Dialogue =
+  newDialogueTemplate(lines)
 
 func line*(self: Dialogue): Line =
   self.lines[self.index]
@@ -113,9 +113,13 @@ func hasMenu*(self: Dialogue): bool =
   self.lines[self.index].kind == Menu
 
 func choices*(self: Dialogue): seq[string] =
+  if self.lines[self.index].kind != Menu:
+    raise newException(LineError, "Current line is not a menu line.")
   self.line.splitContent
 
 func choose*(self: Dialogue, choice: int) =
+  if self.lines[self.index].kind != Menu:
+    raise newException(LineError, "Current line is not a menu line.")
   self.jump(self.lines[self.index].splitInfo[choice])
 
 func `$`*(self: Dialogue): string =
