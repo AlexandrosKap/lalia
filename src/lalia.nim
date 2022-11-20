@@ -1,10 +1,24 @@
 import tables, strformat, strutils, math
 
+#[
+-- Idea --
+
+Procedures can only be used in variable lines.
+This makes it more safe to use procedures.
+
+variable "a", "1 + 1"
+variable "b", "str"
+variable "c", "foo(str)"
+variable "foo(str)"
+check "$c > 2"
+]#
+
 const splitChar = '|'
 const varChar = '$'
 const nostr = ""
 
 type
+  ExprError* = object of CatchableError
   LineError* = object of CatchableError
   LineKind* = enum
     Stop, Comment, Text, Label, Jump, Menu, Variable, Check
@@ -12,12 +26,13 @@ type
     kind*: LineKind
     info*: string
     content*: string
+  DialogueProc* = proc(str: string): string
   Dialogue* = ref object
     index: int
     lines: seq[Line]
     labels: Table[string, int]
     variables: Table[string, string]
-    procedures: Table[string, proc(arg: string)]
+    procedures: Table[string, DialogueProc]
 
 func expr(a: int, op: char, b: int): int =
   case op:
@@ -30,7 +45,7 @@ func expr(a: int, op: char, b: int): int =
   of '>': int(a > b)
   of '=': int(a == b)
   of '!': int(a != b)
-  else: 0
+  else: raise newException(ExprError, &"The expression \"{a} {op} {b}\" is not valid.")
 
 proc calc*(str: string): int =
   let args = str.replace(" ", "") & "+0"
@@ -69,12 +84,24 @@ proc calc*(str: string): int =
         of '-': stack.add(-n)
         else: stack[^1] = expr(stack[^1], lop, n)
         buffer.setLen(0)
-      except: raise
+      except: raise newException(ExprError,
+          &"The expression \"{str}\" is not valid.")
     i += 1
   stack.sum
 
+func replace*(self: string, table: TableRef[string, string]): string =
+  # TODO: Make it later...
+  result = ""
+  var canAdd = true
+  for i, c in self:
+    if c == varChar: canAdd = false
+    if canAdd: result.add(c)
+
 func stop*(): Line =
   Line(kind: Stop, info: nostr, content: nostr)
+
+func comment*(info: string): Line =
+  Line(kind: Comment, info: info, content: nostr)
 
 func text*(info, content: string): Line =
   Line(kind: Text, info: info, content: content)
@@ -96,9 +123,6 @@ func variable*(info, content: string): Line =
 
 func check*(info: string): Line =
   Line(kind: Menu, info: info, content: nostr)
-
-func comment*(info: string): Line =
-  Line(kind: Comment, info: info, content: nostr)
 
 func splitInfo*(self: Line): seq[string] =
   self.info.split(splitChar)
@@ -178,12 +202,12 @@ func hasMenu*(self: Dialogue): bool =
 
 func choices*(self: Dialogue): seq[string] =
   if self.lines[self.index].kind != Menu:
-    raise newException(LineError, "Current line is not a menu line.")
+    raise newException(LineError, "The current line is not a menu line.")
   self.line.splitContent
 
 func choose*(self: Dialogue, choice: int) =
   if self.lines[self.index].kind != Menu:
-    raise newException(LineError, "Current line is not a menu line.")
+    raise newException(LineError, "The current line is not a menu line.")
   self.jump(self.lines[self.index].splitInfo[choice])
 
 func `$`*(self: Dialogue): string =

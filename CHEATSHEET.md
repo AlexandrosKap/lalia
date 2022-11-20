@@ -8,7 +8,9 @@ Procedures
 
 ```nim
 proc calc*(str: string): int
+func replace*(self: string, table: TableRef[string, string]): string
 func stop*(): Line
+func comment*(info: string): Line
 func text*(info, content: string): Line
 func text*(content: string): Line
 func label*(info: string): Line
@@ -16,7 +18,6 @@ func jump*(info: string): Line
 func menu*(info, content: string): Line
 func variable*(info, content: string): Line
 func check*(info: string): Line
-func comment*(info: string): Line
 func splitInfo*(self: Line): seq[string]
 func splitContent*(self: Line): seq[string]
 func `$`*(self: Line): string
