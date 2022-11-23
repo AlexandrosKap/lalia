@@ -7,8 +7,9 @@
 Procedures
 
 ```nim
-proc calc*(str: string): int
-func replace*(self: string, table: TableRef[string, string]): string
+    procedures*: Table[string, DialogueProc]
+func calc*(str: string): int
+proc replace*(str: string, replaceChar: char, table: Table[string,string]): string
 func stop*(): Line
 func comment*(info: string): Line
 func text*(info, content: string): Line
@@ -17,22 +18,21 @@ func label*(info: string): Line
 func jump*(info: string): Line
 func menu*(info, content: string): Line
 func variable*(info, content: string): Line
+func variable*(content: string): Line
 func check*(info: string): Line
 func splitInfo*(self: Line): seq[string]
 func splitContent*(self: Line): seq[string]
 func `$`*(self: Line): string
 
-func newDialogue*(lines: seq[Line]): Dialogue
-func newDialogue*(lines: varargs[Line]): Dialogue
-func newDialogue*[N](lines: array[N, Line]): Dialogue
-func line*(self: Dialogue): Line
-func update*(self: Dialogue)
-func reset*(self: Dialogue)
-func jump*(self: Dialogue, index: int)
-func jump*(self: Dialogue, label: string)
+proc newDialogue*(lines: varargs[Line]): Dialogue
+proc line*(self: Dialogue): Line
+proc update*(self: Dialogue)
+proc reset*(self: Dialogue)
+proc jump*(self: Dialogue, index: int)
+proc jump*(self: Dialogue, label: string)
 func hasStop*(self: Dialogue): bool
 func hasMenu*(self: Dialogue): bool
-func choices*(self: Dialogue): seq[string]
-func choose*(self: Dialogue, choice: int)
+proc choices*(self: Dialogue): seq[string]
+proc choose*(self: Dialogue, choice: int)
 func `$`*(self: Dialogue): string
 ```
