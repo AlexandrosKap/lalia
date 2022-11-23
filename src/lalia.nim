@@ -22,12 +22,14 @@ const nostr = ""
 type
   ExprError* = object of CatchableError
   LineError* = object of CatchableError
+
   LineKind* = enum
     Stop, Comment, Text, Label, Jump, Menu, Variable, Check
   Line* = object
     kind*: LineKind
     info*: string
     content*: string
+
   DialogueProc* = proc(str: string): string
   Dialogue* = ref object
     index: int
@@ -35,6 +37,33 @@ type
     labels: Table[string, int]
     variables*: Table[string, string]
     procedures*: Table[string, DialogueProc]
+
+func isValidVarNameChar*(c: char): bool =
+  ## Returns true if the character is a valid variable name character.
+  c.isAlphaAscii or c == '_'
+
+proc replace*(str: string, token: char, table: Table[string, string]): string =
+  ## Returns a string with certain words replaced with words from a table.
+  ## Word characters can be alphabetical or an underscore.
+  result = ""
+  var
+    buffer = ""
+    canAddToResult = true
+  if str.len == 0: return ""
+  for i, c in str:
+    if c == token:
+      canAddToResult = false
+    elif canAddToResult:
+      result.add(c)
+    elif not c.isValidVarNameChar:
+      if table.hasKey(buffer): result.add(table[buffer])
+      result.add(c)
+      buffer.setLen(0)
+      canAddToResult = true
+    else:
+      buffer.add(c)
+  if buffer.len > 0 or str[^1] == token:
+    if table.hasKey(buffer): result.add(table[buffer])
 
 func expr(a: int, op: char, b: int): int =
   ## The base of the calc procedure.
@@ -92,30 +121,6 @@ func calc*(str: string): int =
           &"The expression \"{str}\" is not valid.")
     i += 1
   stack.sum
-
-proc replace*(str: string, replaceChar: char, table: Table[string,
-    string]): string =
-  ## Returns a string with certain words replaced with words from a table.
-  ## Word chars can be alphabetical or underscore.
-  result = ""
-  var
-    buffer = ""
-    canAddToResult = true
-  if str.len == 0: return ""
-  for i, c in str:
-    if c == replaceChar:
-      canAddToResult = false
-    elif canAddToResult:
-      result.add(c)
-    elif not (c.isAlphaAscii or c == '_'):
-      if table.hasKey(buffer): result.add(table[buffer])
-      result.add(c)
-      buffer.setLen(0)
-      canAddToResult = true
-    else:
-      buffer.add(c)
-  if buffer.len > 0 or str[^1] == replaceChar:
-    if table.hasKey(buffer): result.add(table[buffer])
 
 func stop*(): Line =
   ## Creates a new stop line.
@@ -198,7 +203,7 @@ proc reload(self: Dialogue) =
         else: "_"
       val = line.content.replace(varChar, self.variables)
     for c in name:
-      if not (c.isAlphaAscii or c == '_'):
+      if not c.isValidVarNameChar:
         raise newException(LineError, &"The variable name \"{name}\" is not valid.")
     try:
       self.variables[name] = val.calc.intToStr
@@ -229,7 +234,7 @@ proc newDialogue*(lines: varargs[Line]): Dialogue =
   result.reload()
 
 proc line*(self: Dialogue): Line =
-  ## Returns the current dialogue line.
+  ## Returns the current line.
   let line = self.lines[self.index]
   Line(
     kind: line.kind,
@@ -242,31 +247,41 @@ proc update*(self: Dialogue) =
   self.setIndexAndReload(self.index + 1)
 
 proc reset*(self: Dialogue) =
+  ## Resets the dialogue to its original state.
   self.setIndexAndReload(0)
 
 proc jump*(self: Dialogue, index: int) =
+  ## Changes the current line.
   self.setIndexAndReload(index)
 
 proc jump*(self: Dialogue, label: string) =
+  ## Changes the current line by using a label.
   self.setIndexAndReload(self.labels[label])
 
 func hasStop*(self: Dialogue): bool =
+  ## Returns true if the current line is a stop line.
   self.lines[self.index].kind == Stop
 
 func hasMenu*(self: Dialogue): bool =
+  ## Returns true if the current line is a menu line.
   self.lines[self.index].kind == Menu
 
 proc choices*(self: Dialogue): seq[string] =
+  ## Returns the current choices.
+  ## Raises an LineError if there are no choices.
   if self.lines[self.index].kind != Menu:
     raise newException(LineError, "The current line is not a menu line.")
   self.line.splitContent
 
 proc choose*(self: Dialogue, choice: int) =
+  ## Selects an choice from the current choices.
+  ## Raises an LineError if there are no choices.
   if self.lines[self.index].kind != Menu:
     raise newException(LineError, "The current line is not a menu line.")
   self.jump(self.lines[self.index].splitInfo[choice])
 
 func `$`*(self: Dialogue): string =
+  ## Returns a string from a dialogue.
   result = ""
   for i, line in self.lines:
     result.add($line)

@@ -1,29 +1,28 @@
 import lalia, strutils
 
-var story = newDialogue(
+# A dialogue with choices.
+
+var dialogue = newDialogue(
   text "What should I do?",
-  # Jump to the label 'COFFE', 'TEA' or 'SLEEP'.
-  menu("COFFEE|TEA|SLEEP", "Drink coffee.|Drink tea.|Go sleep."),
+  # Jump to the label "COFFE" or "TEA".
+  menu("COFFEE|TEA", "Drink coffee.|Drink tea."),
   label "COFFEE",
-  text "I drink the coffee.",
+  text "I drink coffee.",
   jump "END",
   label "TEA",
-  text "I drink the tea.",
-  jump "END",
-  label "SLEEP",
-  text "I drink the sleep.",
+  text "I drink tea.",
   label "END",
   text "The end.",
 )
 
-while not story.hasStop:
-  while story.hasMenu:
-    for i, choice in story.choices:
+while not dialogue.hasStop:
+  while dialogue.hasMenu:
+    for i, choice in dialogue.choices:
       echo "-> ", i, ": ", choice
     var input = -1
-    while input < 0 or input >= story.choices.len:
+    while input < 0 or input >= dialogue.choices.len:
       try: input = readLine(stdin).parseInt
       except ValueError: discard
-    story.choose(input)
-  echo story.line.content
-  story.update()
+    dialogue.choose(input)
+  echo dialogue.line.content
+  dialogue.update()

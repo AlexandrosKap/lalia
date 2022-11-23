@@ -1,6 +1,8 @@
 import lalia
 
-var story = newDialogue(
+# A dialogue with variables.
+
+var dialogue = newDialogue(
   text "Math time!",
   # Saves "1 + 1" to a variable called "_".
   variable "1 + 1",
@@ -10,7 +12,7 @@ var story = newDialogue(
   text "I love the number $myCoolVar!",
 )
 
-while not story.hasStop:
-  echo story.line.content
-  story.update()
-echo "\n", story.variables
+while not dialogue.hasStop:
+  echo dialogue.line.content
+  dialogue.update()
+echo "\n", dialogue.variables

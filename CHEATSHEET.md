@@ -7,9 +7,9 @@
 Procedures
 
 ```nim
-    procedures*: Table[string, DialogueProc]
+func isValidVarNameChar*(c: char): bool
+proc replace*(str: string, token: char, table: Table[string, string]): string
 func calc*(str: string): int
-proc replace*(str: string, replaceChar: char, table: Table[string,string]): string
 func stop*(): Line
 func comment*(info: string): Line
 func text*(info, content: string): Line
