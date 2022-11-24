@@ -1,4 +1,4 @@
-import tables, strformat, strutils, math
+import tables, strutils, strformat
 export tables
 
 #[
@@ -17,7 +17,11 @@ check "$c > 2"
 
 const splitChar = '|'
 const varChar = '$'
+
 const nostr = ""
+const exprErrorMsg = "The expression is not valid."
+const menuErrorMsg = "The current line is not a menu line."
+const variableErrorMsg = "The variable name is not valid."
 
 type
   ExprError* = object of CatchableError
@@ -77,10 +81,11 @@ func expr(a: int, op: char, b: int): int =
   of '>': int(a > b)
   of '=': int(a == b)
   of '!': int(a != b)
-  else: raise newException(ExprError, &"The expression \"{a} {op} {b}\" is not valid.")
+  else: raise newException(ExprError, exprErrorMsg)
 
 func calc*(str: string): int =
   ## Returns an int by evaluating an expression from a string.
+  result = 0
   let args = str.replace(" ", "") & "+0"
   var
     stack = @[0]
@@ -117,10 +122,12 @@ func calc*(str: string): int =
         of '-': stack.add(-n)
         else: stack[^1] = expr(stack[^1], lop, n)
         buffer.setLen(0)
-      except: raise newException(ExprError,
-          &"The expression \"{str}\" is not valid.")
+      except ExprError: raise
+      except: raise newException(ExprError, exprErrorMsg)
     i += 1
-  stack.sum
+  for item in stack: result += item
+
+#
 
 func stop*(): Line =
   ## Creates a new stop line.
@@ -176,35 +183,31 @@ func `$`*(self: Line): string =
 
 #
 
-proc setIndex(self: Dialogue, val: int)
-proc reload(self: Dialogue)
-
-template setIndexAndReload(self: Dialogue, val: int): untyped =
-  self.setIndex(val)
-  self.reload()
-
-proc setIndex(self: Dialogue, val: int) =
+func setIndex(self: Dialogue, val: int) =
+  ## Sets the index to a new value.
   if val >= self.lines.len: self.index = self.lines.len - 1
   elif val < 0: self.index = 0
   else: self.index = val
 
 proc reload(self: Dialogue) =
+  ## Reloads the current line until a next valid line is found.
   let line = self.lines[self.index]
   case line.kind:
   of Label:
-    self.setIndexAndReload(self.index + 1)
+    self.setIndex(self.index + 1)
+    self.reload()
   of Jump:
-    self.setIndexAndReload(self.labels[line.info.replace(varChar,
-        self.variables)])
+    self.setIndex(self.labels[line.info.replace(varChar, self.variables)])
+    self.reload()
   of Variable:
     let
+      val = line.content.replace(varChar, self.variables)
       name =
         if line.info.len > 0: line.info.replace(varChar, self.variables)
         else: "_"
-      val = line.content.replace(varChar, self.variables)
     for c in name:
-      if not c.isValidVarNameChar:
-        raise newException(LineError, &"The variable name \"{name}\" is not valid.")
+      if not c.isValidVarNameChar: raise newException(LineError, variableErrorMsg)
+    # Try to calculate the value.
     try:
       self.variables[name] = val.calc.intToStr
     except:
@@ -213,20 +216,22 @@ proc reload(self: Dialogue) =
         self.variables[name] = self.procedures[val[0 ..^ i]](val[i .. ^1])
       else:
         self.variables[name] = val
-    self.setIndexAndReload(self.index + 1)
+    self.setIndex(self.index + 1)
+    self.reload()
   of Check:
     var step = 2
     try:
       if line.info.replace(varChar, self.variables).calc != 0: step = 1
     except:
       discard
-    self.setIndexAndReload(self.index + step)
+    self.setIndex(self.index + step)
+    self.reload()
   of Stop, Comment, Text, Menu:
     discard
 
 proc newDialogue*(lines: varargs[Line]): Dialogue =
   ## Creates a new dialogue.
-  result = Dialogue()
+  result = Dialogue(variables: {"_": "0"}.toTable)
   for i, line in lines:
     result.lines.add(line)
     if line.kind == Label: result.labels[line.info] = i
@@ -244,19 +249,23 @@ proc line*(self: Dialogue): Line =
 
 proc update*(self: Dialogue) =
   ## Updates the dialogue.
-  self.setIndexAndReload(self.index + 1)
+  self.setIndex(self.index + 1)
+  self.reload()
 
 proc reset*(self: Dialogue) =
   ## Resets the dialogue to its original state.
-  self.setIndexAndReload(0)
+  self.setIndex(0)
+  self.reload()
 
 proc jump*(self: Dialogue, index: int) =
   ## Changes the current line.
-  self.setIndexAndReload(index)
+  self.setIndex(index)
+  self.reload()
 
 proc jump*(self: Dialogue, label: string) =
   ## Changes the current line by using a label.
-  self.setIndexAndReload(self.labels[label])
+  self.setIndex(self.labels[label])
+  self.reload()
 
 func hasStop*(self: Dialogue): bool =
   ## Returns true if the current line is a stop line.
@@ -270,14 +279,14 @@ proc choices*(self: Dialogue): seq[string] =
   ## Returns the current choices.
   ## Raises an LineError if there are no choices.
   if self.lines[self.index].kind != Menu:
-    raise newException(LineError, "The current line is not a menu line.")
+    raise newException(LineError, menuErrorMsg)
   self.line.splitContent
 
 proc choose*(self: Dialogue, choice: int) =
   ## Selects an choice from the current choices.
   ## Raises an LineError if there are no choices.
   if self.lines[self.index].kind != Menu:
-    raise newException(LineError, "The current line is not a menu line.")
+    raise newException(LineError, menuErrorMsg)
   self.jump(self.lines[self.index].splitInfo[choice])
 
 func `$`*(self: Dialogue): string =

@@ -10,6 +10,7 @@ Procedures
 func isValidVarNameChar*(c: char): bool
 proc replace*(str: string, token: char, table: Table[string, string]): string
 func calc*(str: string): int
+
 func stop*(): Line
 func comment*(info: string): Line
 func text*(info, content: string): Line
