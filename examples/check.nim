@@ -1,23 +1,24 @@
 import lalia, strutils
 
 # A dialogue with checks.
-# TODO: somethin is broken uwu
 
 var dialogue = newDialogue(
   label "START",
   text "Say yes!",
-  menu("YES|NO|END", "Yes.|No.|Can I skip this?"),
+  menu("NO|YES", "No.|Yes."),
 
   label "YES",
   variable "$_ + 1",
   jump "START",
-  label "NO",
+  label "NO", 
   text "...",
 
-  label "END",
+  check "$_ = 0",
+  text "Ok.",
+  check "$_ = 1",
+  text "You said yes 1 time.",
   check "$_ > 1",
-  text "I love you.",
-  text "I hate you.",
+  text "You said yes $_ times.",
 )
 
 while not dialogue.hasStop:

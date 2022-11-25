@@ -46,7 +46,7 @@ func isValidVarNameChar*(c: char): bool =
   ## Returns true if the character is a valid variable name character.
   c.isAlphaAscii or c == '_'
 
-proc replace*(str: string, token: char, table: Table[string, string]): string =
+func replace*(str: string, token: char, table: Table[string, string]): string =
   ## Returns a string with certain words replaced with words from a table.
   ## Word characters can be alphabetical or an underscore.
   result = ""
@@ -167,15 +167,7 @@ func variable*(content: string): Line =
 
 func check*(info: string): Line =
   ## Creates a new check line.
-  Line(kind: Menu, info: info, content: nostr)
-
-func splitInfo*(self: Line): seq[string] =
-  ## Splits the line info.
-  self.info.split(splitChar)
-
-func splitContent*(self: Line): seq[string] =
-  ## Splits the line content.
-  self.content.split(splitChar)
+  Line(kind: Check, info: info, content: nostr)
 
 func `$`*(self: Line): string =
   ## Returns a string from a line.
@@ -205,6 +197,7 @@ proc reload(self: Dialogue) =
       name =
         if line.info.len > 0: line.info.replace(varChar, self.variables)
         else: "_"
+    # Check if variable line is ok.
     for c in name:
       if not c.isValidVarNameChar: raise newException(LineError, variableErrorMsg)
     # Try to calculate the value.
@@ -212,8 +205,8 @@ proc reload(self: Dialogue) =
       self.variables[name] = val.calc.intToStr
     except:
       let i = val.find(' ')
-      if i > 0 and self.procedures.hasKey(val[0 ..^ i]):
-        self.variables[name] = self.procedures[val[0 ..^ i]](val[i .. ^1])
+      if i < val.len - 1 and self.procedures.hasKey(val[0 ..^ i]):
+        self.variables[name] = self.procedures[val[0 ..^ i]](val[i + 1 .. ^1])
       else:
         self.variables[name] = val
     self.setIndex(self.index + 1)
@@ -280,14 +273,14 @@ proc choices*(self: Dialogue): seq[string] =
   ## Raises an LineError if there are no choices.
   if self.lines[self.index].kind != Menu:
     raise newException(LineError, menuErrorMsg)
-  self.line.splitContent
+  self.line.content.split(splitChar)
 
 proc choose*(self: Dialogue, choice: int) =
   ## Selects an choice from the current choices.
   ## Raises an LineError if there are no choices.
   if self.lines[self.index].kind != Menu:
     raise newException(LineError, menuErrorMsg)
-  self.jump(self.lines[self.index].splitInfo[choice])
+  self.jump(self.lines[self.index].info.split(splitChar)[choice])
 
 func `$`*(self: Dialogue): string =
   ## Returns a string from a dialogue.
