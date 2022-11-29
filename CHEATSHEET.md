@@ -7,7 +7,7 @@
 Procedures
 
 ```nim
-func isValidVarNameChar*(c: char): bool
+func isValidNameChar*(c: char): bool
 func replace*(str: string, token: char, table: Table[string, string]): string
 func calc*(str: string): int
 
@@ -24,6 +24,9 @@ func check*(info: string): Line
 func `$`*(self: Line): string
 
 proc newDialogue*(lines: varargs[Line]): Dialogue
+proc index*(self: Dialogue): int
+proc lines*(self: Dialogue): LineSeq
+proc labels*(self: Dialogue): LabelTable
 proc line*(self: Dialogue): Line
 proc update*(self: Dialogue)
 proc reset*(self: Dialogue)
@@ -34,4 +37,12 @@ func hasMenu*(self: Dialogue): bool
 proc choices*(self: Dialogue): seq[string]
 proc choose*(self: Dialogue, choice: int)
 func `$`*(self: Dialogue): string
+
+func newDialogueBuilder*(): DialogueBuilder
+func add*(self: DialogueBuilder, line: Line): DialogueBuilder
+func add*(self: DialogueBuilder, lines: varargs[Line]): DialogueBuilder
+func add*(self: DialogueBuilder, name, value: string): DialogueBuilder
+func add*(self: DialogueBuilder, name: string,value: DialogueProcedure): DialogueBuilder
+func reset*(self: DialogueBuilder): DialogueBuilder
+proc build*(self: DialogueBuilder): Dialogue
 ```

@@ -34,15 +34,25 @@ type
     info*: string
     content*: string
 
-  DialogueProc* = proc(str: string): string
+  DialogueProcedure* = proc(str: string): string
+  LineSeq* = seq[Line]
+  LabelTable* = Table[string, int]
+  VariableTable* = Table[string, string]
+  ProcedureTable* = Table[string, DialogueProcedure]
+
   Dialogue* = ref object
     index: int
-    lines: seq[Line]
-    labels: Table[string, int]
-    variables*: Table[string, string]
-    procedures*: Table[string, DialogueProc]
+    lines: LineSeq
+    labels: LabelTable
+    variables*: VariableTable
+    procedures*: ProcedureTable
+  DialogueBuilder* = ref object
+    lines*: LineSeq
+    labels*: LabelTable
+    variables*: VariableTable
+    procedures*: ProcedureTable
 
-func isValidVarNameChar*(c: char): bool =
+func isValidNameChar*(c: char): bool =
   ## Returns true if the character is a valid variable name character.
   c.isAlphaAscii or c == '_'
 
@@ -59,7 +69,7 @@ func replace*(str: string, token: char, table: Table[string, string]): string =
       canAddToResult = false
     elif canAddToResult:
       result.add(c)
-    elif not c.isValidVarNameChar:
+    elif not c.isValidNameChar:
       if table.hasKey(buffer): result.add(table[buffer])
       result.add(c)
       buffer.setLen(0)
@@ -122,8 +132,10 @@ func calc*(str: string): int =
         of '-': stack.add(-n)
         else: stack[^1] = expr(stack[^1], lop, n)
         buffer.setLen(0)
-      except ExprError: raise
-      except: raise newException(ExprError, exprErrorMsg)
+      except ExprError:
+        raise
+      except:
+        raise newException(ExprError, exprErrorMsg)
     i += 1
   for item in stack: result += item
 
@@ -175,11 +187,11 @@ func `$`*(self: Line): string =
 
 #
 
-func setIndex(self: Dialogue, val: int) =
+func setIndex(self: Dialogue, value: int) =
   ## Sets the index to a new value.
-  if val >= self.lines.len: self.index = self.lines.len - 1
-  elif val < 0: self.index = 0
-  else: self.index = val
+  if value >= self.lines.len: self.index = self.lines.len - 1
+  elif value < 0: self.index = 0
+  else: self.index = value
 
 proc reload(self: Dialogue) =
   ## Reloads the current line until a next valid line is found.
@@ -193,22 +205,22 @@ proc reload(self: Dialogue) =
     self.reload()
   of Variable:
     let
-      val = line.content.replace(varChar, self.variables)
+      value = line.content.replace(varChar, self.variables)
       name =
         if line.info.len > 0: line.info.replace(varChar, self.variables)
         else: "_"
     # Check if variable line is ok.
     for c in name:
-      if not c.isValidVarNameChar: raise newException(LineError, variableErrorMsg)
+      if not c.isValidNameChar: raise newException(LineError, variableErrorMsg)
     # Try to calculate the value.
     try:
-      self.variables[name] = val.calc.intToStr
+      self.variables[name] = value.calc.intToStr
     except:
-      let i = val.find(' ')
-      if i < val.len - 1 and self.procedures.hasKey(val[0 ..^ i]):
-        self.variables[name] = self.procedures[val[0 ..^ i]](val[i + 1 .. ^1])
+      let i = value.find(' ')
+      if i < value.len - 1 and self.procedures.hasKey(value[0 ..^ i]):
+        self.variables[name] = self.procedures[value[0 ..^ i]](value[i + 1 .. ^1])
       else:
-        self.variables[name] = val
+        self.variables[name] = value
     self.setIndex(self.index + 1)
     self.reload()
   of Check:
@@ -230,6 +242,10 @@ proc newDialogue*(lines: varargs[Line]): Dialogue =
     if line.kind == Label: result.labels[line.info] = i
   result.lines.add(stop())
   result.reload()
+
+proc index*(self: Dialogue): int = self.index
+proc lines*(self: Dialogue): LineSeq = self.lines
+proc labels*(self: Dialogue): LabelTable = self.labels
 
 proc line*(self: Dialogue): Line =
   ## Returns the current line.
@@ -288,3 +304,38 @@ func `$`*(self: Dialogue): string =
   for i, line in self.lines:
     result.add($line)
     if i != self.lines.len - 1: result.add('\n')
+
+#
+
+func newDialogueBuilder*(): DialogueBuilder =
+  DialogueBuilder()
+
+func add*(self: DialogueBuilder, line: Line): DialogueBuilder =
+  self.lines.add(line)
+  self
+
+func add*(self: DialogueBuilder, lines: varargs[Line]): DialogueBuilder =
+  self.lines.add(lines)
+  self
+
+func add*(self: DialogueBuilder, name, value: string): DialogueBuilder =
+  self.variables[name] = value
+  self
+
+func add*(self: DialogueBuilder, name: string,
+    value: DialogueProcedure): DialogueBuilder =
+  self.procedures[name] = value
+  self
+
+func reset*(self: DialogueBuilder): DialogueBuilder =
+  self.lines = LineSeq.default()
+  self.labels = LabelTable.default()
+  self.variables = VariableTable.default()
+  self.procedures = ProcedureTable.default()
+  self
+
+proc build*(self: DialogueBuilder): Dialogue =
+  result = newDialogue(self.lines)
+  result.variables = self.variables
+  result.procedures = self.procedures
+  result.reload()
