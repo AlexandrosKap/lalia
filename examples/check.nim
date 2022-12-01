@@ -1,27 +1,27 @@
 import lalia, strutils
 
-# A dialogue with checks.
+# TODO: bugubuguub
 
 var dialogue = newDialogue(
-  label "START",
-  text "Say yes!",
-  menu("NO|YES", "No.|Yes."),
+  labelLine "START",
+  textLine "Say yes!",
+  menuLine("NO|YES", "No.|Yes."),
 
-  label "YES",
-  variable "$_ + 1",
-  jump "START",
-  label "NO",
-  text "...",
+  labelLine "YES",
+  variableLine "$_ + 1",
+  jumpLine "START",
+  labelLine "NO",
+  textLine "...",
 
-  check "$_ = 0",
-  text "Ok.",
-  check "$_ = 1",
-  text "You said yes 1 time.",
-  check "$_ > 1",
-  text "You said yes $_ times.",
+  checkLine "$_ = 0",
+  textLine "Ok.",
+  checkLine "$_ = 1",
+  textLine "You said yes 1 time.",
+  checkLine "$_ > 1",
+  textLine "You said yes $_ times.",
 )
 
-while not dialogue.hasStop:
+while not dialogue.hasPause:
   while dialogue.hasMenu:
     for i, choice in dialogue.choices:
       echo "-> ", i, ": ", choice

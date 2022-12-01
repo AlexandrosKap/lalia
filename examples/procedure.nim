@@ -1,25 +1,25 @@
 import lalia, strutils
 
-# TODO: has bug with no arg line.
+# TODO: bugubuguub
 
-func uwu(str: string): string =
+func uwu(text: string): string =
   ## Returns uwu.
   ## If str is a number n, then uwu it repeated n times.
   try:
-    "UwU ".repeat(str.parseInt).strip
+    "UwU ".repeat(text.parseInt).strip
   except:
     "UwU"
 
 var dialogue = newDialogueBuilder()
-  .add(
-    text "I will now say \"UwU\" three times.",
-    variable "uwu",
-    text "$_",
-    text "Thank you."
+  .addLines(
+    textLine "I will now say \"UwU\" three times.",
+    variableLine "uwu",
+    textLine "$_",
+    textLine "Thank you."
   )
-  .add("uwu", uwu)
+  .addProcedure("uwu", uwu)
   .build()
 
-while not dialogue.hasStop:
+while not dialogue.hasPause:
   echo dialogue.line.content
   dialogue.update()

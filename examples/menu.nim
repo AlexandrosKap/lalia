@@ -1,21 +1,21 @@
 import lalia, strutils
 
-# A dialogue with choices.
-
 var dialogue = newDialogue(
-  text "What should I do?",
+  textLine "What should I do?",
+  menuLine("COFFEE|TEA", "Drink coffee.|Drink tea."),
+
   # Jump to the label "COFFE" or "TEA".
-  menu("COFFEE|TEA", "Drink coffee.|Drink tea."),
-  label "COFFEE",
-  text "I drink coffee.",
-  jump "END",
-  label "TEA",
-  text "I drink tea.",
-  label "END",
-  text "The end.",
+  labelLine "COFFEE",
+  textLine "I drink coffee.",
+  jumpLine "END",
+  labelLine "TEA",
+  textLine "I drink tea.",
+
+  labelLine "END",
+  textLine "The end.",
 )
 
-while not dialogue.hasStop:
+while not dialogue.hasPause:
   while dialogue.hasMenu:
     for i, choice in dialogue.choices:
       echo "-> ", i, ": ", choice
