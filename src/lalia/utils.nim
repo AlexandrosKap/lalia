@@ -94,3 +94,11 @@ func calculate*(text: string): int =
         raise newExpressionError(text)
     i += 1
   for item in stack: result += item
+
+func calculateAndConvert*(text: string): string =
+  ## Calculates and converts the result to a string.
+  ## An empty string is returned if the expression is incorrect.
+  try:
+    text.calculate.intToStr
+  except:
+    ""

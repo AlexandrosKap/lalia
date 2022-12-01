@@ -1,4 +1,4 @@
-# 📝 Lalia
+# 🐣 Lalia
 
 A super simple dialogue system for Nim.
 
@@ -44,15 +44,21 @@ echo "\n", dialogue
 There is no documentation.
 Read the CHEATSHEET.md file in the repo for now.
 
-## 📦 Installation
+## Installation
 
-Copy and paste the following commands into a terminal to install the library.
+Copy and paste the following commands into a terminal.
 
 ```sh
-nimble install https://github.com/AlexandrosKap/lalia
+nimble install -y https://github.com/AlexandrosKap/lalia
 ```
 
-## 📜 License
+Add Lalia to your .nimble file.
+
+```
+requires "https://github.com/AlexandrosKap/lalia"
+```
+
+## License
 
 The project is released under the terms of the MIT License.
 Please refer to the LICENSE file.

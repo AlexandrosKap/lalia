@@ -17,6 +17,7 @@ func newExpressionError*(expression: string): ref ExpressionError
 func isValidNameChar*(c: char): bool
 func replace*(text: string, token: char, table: Table[string, string]): string
 func calculate*(text: string): int
+func calculateAndConvert*(text: string): string
 ```
 
 ## line
@@ -33,8 +34,11 @@ func labelLine*(info: string): Line
 func jumpLine*(info: string): Line
 func menuLine*(info, content: string): Line
 func variableLine*(info, content: string): Line
+func variableLine*(content: string): Line
 func calculationLine*(info, content: string): Line
+func calculationLine*(content: string): Line
 func procedureLine*(info, content: string): Line
+func procedureLine*(content: string): Line
 func checkLine*(info: string): Line
 func splitInfo*(self: Line): seq[string]
 func splitContent*(self: Line): seq[string]
@@ -48,21 +52,21 @@ func `$`*(self: Line): string
 Procedures
 
 ```nim
-func newDialogue*(lines: varargs[Line]): Dialogue
+proc newDialogue*(lines: varargs[Line]): Dialogue
 func index*(self: Dialogue): int
 func line*(self: Dialogue): Line
 func lines*(self: Dialogue): seq[Line]
 func labels*(self: Dialogue): LabelTable
 func variables*(self: Dialogue): VariableTable
 func procedures*(self: Dialogue): ProcedureTable
-func update*(self: Dialogue)
-func reset*(self: Dialogue)
-func jump*(self: Dialogue, label: string)
-func jumpTo*(self: Dialogue, index: int)
+proc update*(self: Dialogue)
+proc reset*(self: Dialogue)
+proc jump*(self: Dialogue, label: string)
+proc jumpTo*(self: Dialogue, index: int)
 func hasPause*(self: Dialogue): bool
 func hasMenu*(self: Dialogue): bool
 func choices*(self: Dialogue): seq[string]
-func choose*(self: Dialogue, choice: int)
+proc choose*(self: Dialogue, choice: int)
 func `$`*(self: Dialogue): string
 
 func newDialogueBuilder*(): DialogueBuilder
@@ -71,7 +75,7 @@ func addLines*(self: DialogueBuilder, lines: varargs[Line]): DialogueBuilder
 func addVariable*(self: DialogueBuilder, name, value: string): DialogueBuilder
 func addProcedure*(self: DialogueBuilder, name: string, value: DialogueProcedure ): DialogueBuilder
 func reset*(self: DialogueBuilder): DialogueBuilder
-func build*(self: DialogueBuilder): Dialogue
+proc build*(self: DialogueBuilder): Dialogue
 ```
 
 ## consts

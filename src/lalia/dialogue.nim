@@ -20,49 +20,78 @@ type
     variables*: VariableTable
     procedures*: ProcedureTable
 
+func replaceInfo(self: Line, dialogue: Dialogue): string =
+  ## Helper function for replacing the line info.
+  self.replaceInfo(dialogue.variables)
+
+func replaceContent(self: Line, dialogue: Dialogue): string =
+  ## Helper function for replacing the line content.
+  self.replaceContent(dialogue.variables)
+
+func getName(self: Line, dialogue: Dialogue): string =
+  ## Helper function to get the name of a line.
+  if self.info.len > 0:
+    self.replaceinfo(dialogue)
+  else:
+    amoonguss
+
+func setIndex(self: Dialogue, value: int)
+proc refresh(self: Dialogue)
+
+template setIndexAndRefresh(self: Dialogue, value: int): untyped =
+  ## Helper template to avoid typing the same thing again and again.
+  self.setIndex(value)
+  self.refresh()
+
 func setIndex(self: Dialogue, value: int) =
   ## Sets the index to a new value.
   if value >= self.lines.len: self.index = self.lines.len - 1
   elif value < 0: self.index = 0
   else: self.index = value
 
-func refresh(self: Dialogue) =
-  ## Reloads the current line until a next valid line is found.
+proc refresh(self: Dialogue) =
+  ## Reloads the current line until a valid line is found.
   let line = self.lines[self.index]
   case line.kind:
   of Comment, Label:
-    self.setIndex(self.index + 1)
-    self.refresh()
+    self.setIndexAndRefresh(self.index + 1)
   of Jump:
-    self.setIndex(self.labels[line.replaceInfo(self.variables)])
-    self.refresh()
+    if line.info in self.labels:
+      self.setIndexAndRefresh(self.labels[line.info])
+    else:
+      self.setIndexAndRefresh(self.index + 1)
   of Variable:
-    let name =
-      if line.info.len > 0:
-        line.replaceInfo(self.variables)
-      else:
-        amoonguss
+    let name = line.getName(self)
     if name in self.variables:
-      self.variables[name] = line.replaceContent(self.variables)
-    self.setIndex(self.index + 1)
-    self.refresh()
+      self.variables[name] = line.replaceContent(self)
+    self.setIndexAndRefresh(self.index + 1)
   of Check:
     try:
-      if line.replaceInfo(self.variables).calculate != 0:
-        self.setIndex(self.index + 1)
+      if line.replaceInfo(self).calculate != 0:
+        self.setIndexAndRefresh(self.index + 1)
       else:
-        self.setIndex(self.index + 2)
+        self.setIndexAndRefresh(self.index + 2)
     except:
-      self.setIndex(self.index + 2)
-    self.refresh()
-  of Procedure:
-    discard # TODO
+      self.setIndexAndRefresh(self.index + 2)
   of Calculation:
-    discard # TODO
+    let name = line.getName(self)
+    if name in self.variables:
+      self.variables[name] = line.replaceContent(self).calculateAndConvert
+  of Procedure:
+    let name = line.getName(self)
+    let content = line.replaceContent(self)
+    let start = content.find(' ')
+    if name in self.variables and start > 0 and start < content.len - 1:
+      let procedureName = content[0 ..< start]
+      let procedureText = content[start + 1 .. ^1]
+      if procedureName in self.procedures:
+        self.variables[name] = self.procedures[procedureName](procedureText)
+    self.setIndexAndRefresh(self.index + 1)
+    self.setIndexAndRefresh(self.index + 1)
   of Pause, Text, Menu:
     discard
 
-func newDialogue*(lines: varargs[Line]): Dialogue =
+proc newDialogue*(lines: varargs[Line]): Dialogue =
   ## Creates a new dialogue.
   result = Dialogue(variables: {amoonguss: "0"}.toTable)
   for i, line in lines:
@@ -84,8 +113,8 @@ func line*(self: Dialogue): Line =
   ## Returns the current line.
   let line = self.simpleLine
   Line(
-    info: line.replaceInfo(self.variables),
-    content: line.replaceContent(self.variables),
+    info: line.replaceInfo(self),
+    content: line.replaceContent(self),
     kind: line.kind,
   )
 
@@ -105,25 +134,21 @@ func procedures*(self: Dialogue): ProcedureTable =
   ## Returns the procedures.
   self.procedures
 
-func update*(self: Dialogue) =
+proc update*(self: Dialogue) =
   ## Updates the dialogue.
-  self.setIndex(self.index + 1)
-  self.refresh()
+  self.setIndexAndRefresh(self.index + 1)
 
-func reset*(self: Dialogue) =
+proc reset*(self: Dialogue) =
   ## Resets the dialogue to its original state.
-  self.setIndex(0)
-  self.refresh()
+  self.setIndexAndRefresh(0)
 
-func jump*(self: Dialogue, label: string) =
+proc jump*(self: Dialogue, label: string) =
   ## Changes the current line by using a label.
-  self.setIndex(self.labels[label])
-  self.refresh()
+  self.setIndexAndRefresh(self.labels[label])
 
-func jumpTo*(self: Dialogue, index: int) =
+proc jumpTo*(self: Dialogue, index: int) =
   ## Changes the current line to a specific line.
-  self.setIndex(index)
-  self.refresh()
+  self.setIndexAndRefresh(index)
 
 func hasPause*(self: Dialogue): bool =
   ## Returns true if the current line is a stop line.
@@ -135,11 +160,16 @@ func hasMenu*(self: Dialogue): bool =
 
 func choices*(self: Dialogue): seq[string] =
   ## Returns the current choices.
-  self.line.splitContent()
+  if self.simpleLine.kind == Menu:
+    self.line.splitContent()
+  else:
+    @[]
 
-func choose*(self: Dialogue, choice: int) =
+proc choose*(self: Dialogue, choice: int) =
   ## Selects an choice from the current choices.
-  self.jump(self.simpleLine.splitInfo()[choice])
+  let choices = self.simpleLine.splitInfo()
+  if self.simpleLine.kind == Menu and choice < choices.len:
+    self.jump(choices[choice])
 
 func `$`*(self: Dialogue): string =
   ## Returns a string from a dialogue.
@@ -187,7 +217,7 @@ func reset*(self: DialogueBuilder): DialogueBuilder =
   self.procedures = ProcedureTable.default()
   self
 
-func build*(self: DialogueBuilder): Dialogue =
+proc build*(self: DialogueBuilder): Dialogue =
   ## Creates a new dialogue.
   result = newDialogue(self.lines)
   result.variables = self.variables

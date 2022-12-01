@@ -1,7 +1,5 @@
 import lalia, strutils
 
-# TODO: bugubuguub
-
 func uwu(text: string): string =
   ## Returns uwu.
   ## If str is a number n, then uwu it repeated n times.
@@ -13,7 +11,7 @@ func uwu(text: string): string =
 var dialogue = newDialogueBuilder()
   .addLines(
     textLine "I will now say \"UwU\" three times.",
-    variableLine "uwu",
+    procedureLine "uwu",
     textLine "$_",
     textLine "Thank you."
   )

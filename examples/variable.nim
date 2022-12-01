@@ -1,7 +1,5 @@
 import lalia
 
-# TODO: bugubuguub
-
 var dialogue = newDialogue(
   textLine "Math time!",
   # Saves "1 + 1" to a variable called "_".

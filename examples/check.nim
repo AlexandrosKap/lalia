@@ -1,7 +1,5 @@
 import lalia, strutils
 
-# TODO: bugubuguub
-
 var dialogue = newDialogue(
   labelLine "START",
   textLine "Say yes!",

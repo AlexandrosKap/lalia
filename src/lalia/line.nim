@@ -57,13 +57,25 @@ func variableLine*(info, content: string): Line =
   ## Creates a new variable line.
   Line(info: info, content: content, kind: Variable)
 
+func variableLine*(content: string): Line =
+  ## Creates a new variable line with no info.
+  Line(info: emptyString, content: content, kind: Variable)
+
 func calculationLine*(info, content: string): Line =
   ## Creates a new calculation line.
   Line(info: info, content: content, kind: Calculation)
 
+func calculationLine*(content: string): Line =
+  ## Creates a new calculation line with no info.
+  Line(info: emptyString, content: content, kind: Calculation)
+
 func procedureLine*(info, content: string): Line =
   ## Creates a new procedure line.
   Line(info: info, content: content, kind: Procedure)
+
+func procedureLine*(content: string): Line =
+  ## Creates a new procedure line with no info.
+  Line(info: emptyString, content: content, kind: Procedure)
 
 func checkLine*(info: string): Line =
   ## Creates a new check line.
