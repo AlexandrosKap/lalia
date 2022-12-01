@@ -1,85 +1,88 @@
 import tables, strutils, strformat
 export tables
 
-#[
--- Idea --
-
-Procedures can only be used in variable lines.
-And only one procedure can be used per variable line.
-This makes it more safe to use procedures.
-
-variable "a", "str"
-variable "b", "1 + 1"
-variable "c", "foo str"
-variable "foo str"
-check "$c > 2"
-]#
-
 const splitChar = '|'
-const varChar = '$'
-
-const nostr = ""
-const exprErrorMsg = "The expression is not valid."
-const menuErrorMsg = "The current line is not a menu line."
-const variableErrorMsg = "The variable name is not valid."
+const variableChar = '$'
+const emptyString = ""
+const amoonguss = "_"
 
 type
-  ExprError* = object of CatchableError
+  ExpressionError* = object of CatchableError
   LineError* = object of CatchableError
 
   LineKind* = enum
-    Stop, Comment, Text, Label, Jump, Menu, Variable, Check
+    Pause,
+    Comment,
+    Text,
+    Label,
+    Jump,
+    Menu,
+    Variable,
+    Calculation,
+    Procedure,
+    Check,
+
   Line* = object
-    kind*: LineKind
     info*: string
     content*: string
+    kind*: LineKind
 
-  DialogueProcedure* = proc(str: string): string
-  LineSeq* = seq[Line]
+  DialogueProcedure* = proc(text: string): string
   LabelTable* = Table[string, int]
   VariableTable* = Table[string, string]
   ProcedureTable* = Table[string, DialogueProcedure]
 
   Dialogue* = ref object
     index: int
-    lines: LineSeq
+    lines: seq[Line]
     labels: LabelTable
-    variables*: VariableTable
-    procedures*: ProcedureTable
+    variables: VariableTable
+    procedures: ProcedureTable
+
   DialogueBuilder* = ref object
-    lines*: LineSeq
+    lines*: seq[Line]
     labels*: LabelTable
     variables*: VariableTable
     procedures*: ProcedureTable
 
+func newExpressionError*(expression: string): ref ExpressionError =
+  newException(ExpressionError, fmt"The expression is incorrect: {expression}")
+
+func newLineError*(line: Line): ref ExpressionError =
+  newException(ExpressionError, fmt"The line is incorrect: {line}")
+
+#
+
 func isValidNameChar*(c: char): bool =
   ## Returns true if the character is a valid variable name character.
-  c.isAlphaAscii or c == '_'
+  c.isAlphaAscii or c == variableChar
 
-func replace*(str: string, token: char, table: Table[string, string]): string =
+func replace*(text: string, token: char, table: Table[string, string]): string =
   ## Returns a string with certain words replaced with words from a table.
   ## Word characters can be alphabetical or an underscore.
   result = ""
-  var
-    buffer = ""
-    canAddToResult = true
-  if str.len == 0: return ""
-  for i, c in str:
+  var buffer = ""
+  var canAddToResult = true
+  if text.len == 0:
+    return ""
+  for i, c in text:
     if c == token:
       canAddToResult = false
     elif canAddToResult:
       result.add(c)
     elif not c.isValidNameChar:
-      if table.hasKey(buffer): result.add(table[buffer])
+      if table.hasKey(buffer):
+        result.add(table[buffer])
       result.add(c)
       buffer.setLen(0)
       canAddToResult = true
     else:
       buffer.add(c)
-  if buffer.len > 0 or str[^1] == token:
-    if table.hasKey(buffer): result.add(table[buffer])
+  if buffer.len > 0 or text[^1] == token:
+    if table.hasKey(buffer):
+      result.add(table[buffer])
 
-func expr(a: int, op: char, b: int): int =
+func expression(a: int, op: char, b: int): int =
   ## The base of the calc procedure.
   case op:
   of '+': a + b
@@ -91,12 +94,12 @@ func expr(a: int, op: char, b: int): int =
   of '>': int(a > b)
   of '=': int(a == b)
   of '!': int(a != b)
-  else: raise newException(ExprError, exprErrorMsg)
+  else: raise newExpressionError(fmt"{a}{op}{b}")
 
-func calc*(str: string): int =
+func calculate*(text: string): int =
   ## Returns an int by evaluating an expression from a string.
   result = 0
-  let args = str.replace(" ", "") & "+0"
+  let args = text.replace(" ", "") & "+0"
   var
     stack = @[0]
     buffer = ""
@@ -123,63 +126,73 @@ func calc*(str: string): int =
             if pcount == 0: break
             j += 1
           # Skip the characters in parentheses.
-          n = calc(args[i + 1 ..< j])
+          n = calculate(args[i + 1 ..< j])
           i = j + 1
           rop = args[i]
         # Calculate expression.
         case lop
         of '+': stack.add(n)
         of '-': stack.add(-n)
-        else: stack[^1] = expr(stack[^1], lop, n)
+        else: stack[^1] = expression(stack[^1], lop, n)
         buffer.setLen(0)
-      except ExprError:
-        raise
       except:
-        raise newException(ExprError, exprErrorMsg)
+        raise newExpressionError(text)
     i += 1
   for item in stack: result += item
 
 #
 
-func stop*(): Line =
+func pauseLine*(): Line =
   ## Creates a new stop line.
-  Line(kind: Stop, info: nostr, content: nostr)
+  Line(info: emptyString, content: emptyString, kind: Pause)
 
-func comment*(info: string): Line =
+func commentLine*(info: string): Line =
   ## Creates a new comment line.
-  Line(kind: Comment, info: info, content: nostr)
+  Line(info: info, content: emptyString, kind: Comment)
 
-func text*(info, content: string): Line =
+func textLine*(info, content: string): Line =
   ## Creates a new text line.
-  Line(kind: Text, info: info, content: content)
+  Line(info: info, content: content, kind: Text)
 
-func text*(content: string): Line =
+func textLine*(content: string): Line =
   ## Creates a new text line with no info.
-  Line(kind: Text, info: nostr, content: content)
+  Line(info: emptyString, content: content, kind: Text)
 
-func label*(info: string): Line =
+func labelLine*(info: string): Line =
   ## Creates a new label line.
-  Line(kind: Label, info: info, content: nostr)
+  Line(info: info, content: emptyString, kind: Label)
 
-func jump*(info: string): Line =
+func jumpLine*(info: string): Line =
   ## Creates a new jump line.
-  Line(kind: Jump, info: info, content: nostr)
+  Line(info: info, content: emptyString, kind: Jump)
 
-func menu*(info, content: string): Line =
+func menuLine*(info, content: string): Line =
   ## Creates a new menu line.
-  Line(kind: Menu, info: info, content: content)
+  Line(info: info, content: content, kind: Menu)
 
-func variable*(info, content: string): Line =
+func variableLine*(info, content: string): Line =
   ## Creates a new variable line.
-  Line(kind: Variable, info: info, content: content)
+  Line(info: info, content: content, kind: Variable)
 
-func variable*(content: string): Line =
+func variableLine*(content: string): Line =
   ## Creates a new variable line with no info.
-  Line(kind: Variable, info: nostr, content: content)
+  Line(info: emptyString, content: content, kind: Variable)
 
-func check*(info: string): Line =
+func checkLine*(info: string): Line =
   ## Creates a new check line.
-  Line(kind: Check, info: info, content: nostr)
+  Line(info: info, content: emptyString, kind: Check)
+
+func splitInfo*(self: Line): seq[string] =
+  self.info.split(splitChar)
+
+func splitContent*(self: Line): seq[string] =
+  self.content.split(splitChar)
+
+func replaceInfo*(self: Line, table: Table[string, string]): string =
+  self.info.replace(variableChar, table)
+
+func replaceContent*(self: Line, table: Table[string, string]): string =
+  self.content.replace(variableChar, table)
 
 func `$`*(self: Line): string =
   ## Returns a string from a line.
@@ -197,63 +210,67 @@ proc reload(self: Dialogue) =
   ## Reloads the current line until a next valid line is found.
   let line = self.lines[self.index]
   case line.kind:
-  of Label:
+  of Comment, Label:
     self.setIndex(self.index + 1)
     self.reload()
   of Jump:
-    self.setIndex(self.labels[line.info.replace(varChar, self.variables)])
+    self.setIndex(self.labels[line.info.replace(variableChar, self.variables)])
     self.reload()
   of Variable:
-    let
-      value = line.content.replace(varChar, self.variables)
-      name =
-        if line.info.len > 0: line.info.replace(varChar, self.variables)
-        else: "_"
-    # Check if variable line is ok.
-    for c in name:
-      if not c.isValidNameChar: raise newException(LineError, variableErrorMsg)
-    # Try to calculate the value.
-    try:
-      self.variables[name] = value.calc.intToStr
-    except:
-      let i = value.find(' ')
-      if i < value.len - 1 and self.procedures.hasKey(value[0 ..^ i]):
-        self.variables[name] = self.procedures[value[0 ..^ i]](value[i + 1 .. ^1])
+    let value = line.content.replace(variableChar, self.variables)
+    let name =
+      if line.info.len > 0:
+        line.info.replace(variableChar, self.variables)
       else:
-        self.variables[name] = value
+        amoonguss
+    self.variables[name] = value
     self.setIndex(self.index + 1)
     self.reload()
   of Check:
     var step = 2
     try:
-      if line.info.replace(varChar, self.variables).calc != 0: step = 1
+      if line.info.replace(variableChar, self.variables).calculate != 0:
+        step = 1
     except:
       discard
     self.setIndex(self.index + step)
     self.reload()
-  of Stop, Comment, Text, Menu:
+  of Procedure:
+    discard # TODO
+  of Calculation:
+    discard # TODO
+  of Pause, Text, Menu:
     discard
 
 proc newDialogue*(lines: varargs[Line]): Dialogue =
   ## Creates a new dialogue.
-  result = Dialogue(variables: {"_": "0"}.toTable)
+  result = Dialogue(variables: {amoonguss: "0"}.toTable)
   for i, line in lines:
     result.lines.add(line)
-    if line.kind == Label: result.labels[line.info] = i
-  result.lines.add(stop())
+    if line.kind == Label:
+      result.labels[line.info] = i
+  result.lines.add(pauseLine())
   result.reload()
 
-proc index*(self: Dialogue): int = self.index
-proc lines*(self: Dialogue): LineSeq = self.lines
-proc labels*(self: Dialogue): LabelTable = self.labels
+proc index*(self: Dialogue): int =
+  self.index
+
+proc lines*(self: Dialogue): seq[Line] =
+  self.lines
+
+proc labels*(self: Dialogue): LabelTable =
+  self.labels
+
+proc simpleLine(self: Dialogue): Line =
+  self.lines[self.index]
 
 proc line*(self: Dialogue): Line =
   ## Returns the current line.
-  let line = self.lines[self.index]
+  let line = self.simpleLine
   Line(
+    info: line.replaceInfo(self.variables),
+    content: line.replaceContent(self.variables),
     kind: line.kind,
-    info: line.info.replace(varChar, self.variables),
-    content: line.content.replace(varChar, self.variables)
   )
 
 proc update*(self: Dialogue) =
@@ -276,59 +293,57 @@ proc jump*(self: Dialogue, label: string) =
   self.setIndex(self.labels[label])
   self.reload()
 
-func hasStop*(self: Dialogue): bool =
+func hasPause*(self: Dialogue): bool =
   ## Returns true if the current line is a stop line.
-  self.lines[self.index].kind == Stop
+  self.simpleLine.kind == Pause
 
 func hasMenu*(self: Dialogue): bool =
   ## Returns true if the current line is a menu line.
-  self.lines[self.index].kind == Menu
+  self.simpleLine.kind == Menu
 
 proc choices*(self: Dialogue): seq[string] =
   ## Returns the current choices.
-  ## Raises an LineError if there are no choices.
-  if self.lines[self.index].kind != Menu:
-    raise newException(LineError, menuErrorMsg)
-  self.line.content.split(splitChar)
+  self.line.splitContent()
 
 proc choose*(self: Dialogue, choice: int) =
   ## Selects an choice from the current choices.
-  ## Raises an LineError if there are no choices.
-  if self.lines[self.index].kind != Menu:
-    raise newException(LineError, menuErrorMsg)
-  self.jump(self.lines[self.index].info.split(splitChar)[choice])
+  self.jump(self.simpleLine.splitInfo()[choice])
 
 func `$`*(self: Dialogue): string =
   ## Returns a string from a dialogue.
   result = ""
   for i, line in self.lines:
     result.add($line)
-    if i != self.lines.len - 1: result.add('\n')
+    if i != self.lines.len - 1:
+      result.add('\n')
 
 #
 
 func newDialogueBuilder*(): DialogueBuilder =
   DialogueBuilder()
 
-func add*(self: DialogueBuilder, line: Line): DialogueBuilder =
+func addLine*(self: DialogueBuilder, line: Line): DialogueBuilder =
   self.lines.add(line)
   self
 
-func add*(self: DialogueBuilder, lines: varargs[Line]): DialogueBuilder =
+func addLines*(self: DialogueBuilder, lines: varargs[Line]): DialogueBuilder =
   self.lines.add(lines)
   self
 
-func add*(self: DialogueBuilder, name, value: string): DialogueBuilder =
+func addVariable*(self: DialogueBuilder, name, value: string): DialogueBuilder =
   self.variables[name] = value
   self
 
-func add*(self: DialogueBuilder, name: string,
-    value: DialogueProcedure): DialogueBuilder =
+func addProcedure*(
+    self: DialogueBuilder,
+    name: string,
+    value: DialogueProcedure
+    ): DialogueBuilder =
   self.procedures[name] = value
   self
 
 func reset*(self: DialogueBuilder): DialogueBuilder =
-  self.lines = LineSeq.default()
+  self.lines = seq[Line].default()
   self.labels = LabelTable.default()
   self.variables = VariableTable.default()
   self.procedures = ProcedureTable.default()

@@ -1,69 +1,58 @@
-# ⛄ Lalia
+# 📝 Lalia
 
-A dialogue system for Nim.
+A super simple dialogue system for Nim.
 
-## Example
+The library provides the essential tools needed to create a dialogue for a game,
+allowing you to focus on the specific needs of your project.
+It is simple by default, but can easily be extended to something powerful when needed.
+
+## Features
+
+- Easy to use
+- Labels
+- Menus
+- Variables
+- Procedures
+- Conditional statements
+- Mathematical operations
+- Syntax inspired by Assembly
+
+## Examples
 
 A hello-world example.
+More examples can be found in the examples directory.
 
 ```nim
 import lalia
 
-# A simple dialogue.
-
 var dialogue = newDialogue(
-  label "START",
-  text "Hello world.",
-  jump "END",
-  text "Pls don't look at me.",
-  label "END",
-  text "The end.",
+  textLine "Hi!",
+  jumpLine "END",
+  textLine "Please don't look at me.",
+  labelLine "END",
+  textLine "The end.",
 )
 
-while not dialogue.hasStop:
+while not dialogue.hasPause:
   echo dialogue.line.content
   dialogue.update()
 echo "\n", dialogue
 ```
 
-An example that uses variables.
+## Documentation
 
-```nim
-import lalia
+There is no documentation.
+Read the CHEATSHEET.md file in the repo for now.
 
-# A dialogue with variables.
+## 📦 Installation
 
-var dialogue = newDialogue(
-  text "Math time!",
-  # Saves "1 + 1" to a variable called "_".
-  variable "1 + 1",
-  text "1 + 1 = $_",
-  # Saves the value of "_" to a cool variable.
-  variable("myCoolVar", "$_"),
-  text "I love the number $myCoolVar!",
-)
-
-while not dialogue.hasStop:
-  echo dialogue.line.content
-  dialogue.update()
-echo "\n", dialogue.variables
-```
-
-More examples can be found in the examples directory.
-
-## Installation
-
-Copy and paste the following commands into your terminal.
+Copy and paste the following commands into a terminal to install the library.
 
 ```sh
 nimble install https://github.com/AlexandrosKap/lalia
 ```
 
-## Documentation
-
-Information on how to use the library can be found in the CHEATSHEET.md file.
-
-## License
+## 📜 License
 
 The project is released under the terms of the MIT License.
 Please refer to the LICENSE file.

@@ -10,7 +10,7 @@ var dialogue = newDialogue(
   label "YES",
   variable "$_ + 1",
   jump "START",
-  label "NO", 
+  label "NO",
   text "...",
 
   check "$_ = 0",
