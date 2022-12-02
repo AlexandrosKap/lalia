@@ -14,12 +14,6 @@ type
     variables: VariableTable
     procedures: ProcedureTable
 
-  DialogueBuilder* = ref object
-    lines*: seq[Line]
-    labels*: LabelTable
-    variables*: VariableTable
-    procedures*: ProcedureTable
-
 func replaceInfo(self: Line, dialogue: Dialogue): string =
   ## Helper function for replacing the line info.
   self.replaceInfo(dialogue.variables)
@@ -29,9 +23,9 @@ func replaceContent(self: Line, dialogue: Dialogue): string =
   self.replaceContent(dialogue.variables)
 
 func getName(self: Line, dialogue: Dialogue): string =
-  ## Helper function to get the name of a line.
+  ## Helper function to get the name of a variable from a line.
   if self.info.len > 0:
-    self.replaceinfo(dialogue)
+    self.replaceInfo(dialogue)
   else:
     amoonguss
 
@@ -56,14 +50,13 @@ proc refresh(self: Dialogue) =
   of Comment, Label:
     self.setIndexAndRefresh(self.index + 1)
   of Jump:
-    if line.info in self.labels:
-      self.setIndexAndRefresh(self.labels[line.info])
+    let label = line.replaceInfo(self)
+    if label in self.labels:
+      self.setIndexAndRefresh(self.labels[label])
     else:
       self.setIndexAndRefresh(self.index + 1)
   of Variable:
-    let name = line.getName(self)
-    if name in self.variables:
-      self.variables[name] = line.replaceContent(self)
+    self.variables[line.getName(self)] = line.replaceContent(self)
     self.setIndexAndRefresh(self.index + 1)
   of Check:
     try:
@@ -77,6 +70,7 @@ proc refresh(self: Dialogue) =
     let name = line.getName(self)
     if name in self.variables:
       self.variables[name] = line.replaceContent(self).calculateAndConvert
+    self.setIndexAndRefresh(self.index + 1)
   of Procedure:
     let name = line.getName(self)
     let content = line.replaceContent(self)
@@ -86,7 +80,6 @@ proc refresh(self: Dialogue) =
       let procedureText = content[start + 1 .. ^1]
       if procedureName in self.procedures:
         self.variables[name] = self.procedures[procedureName](procedureText)
-    self.setIndexAndRefresh(self.index + 1)
     self.setIndexAndRefresh(self.index + 1)
   of Pause, Text, Menu:
     discard
@@ -105,8 +98,8 @@ func index*(self: Dialogue): int =
   ## Returns the index.
   self.index
 
-func simpleLine(self: Dialogue): Line =
-  ## Returns just the current line.
+func simpleLine*(self: Dialogue): Line =
+  ## Returns the current line as it is with the variable names.
   self.lines[self.index]
 
 func line*(self: Dialogue): Line =
@@ -138,10 +131,6 @@ proc update*(self: Dialogue) =
   ## Updates the dialogue.
   self.setIndexAndRefresh(self.index + 1)
 
-proc reset*(self: Dialogue) =
-  ## Resets the dialogue to its original state.
-  self.setIndexAndRefresh(0)
-
 proc jump*(self: Dialogue, label: string) =
   ## Changes the current line by using a label.
   self.setIndexAndRefresh(self.labels[label])
@@ -149,6 +138,10 @@ proc jump*(self: Dialogue, label: string) =
 proc jumpTo*(self: Dialogue, index: int) =
   ## Changes the current line to a specific line.
   self.setIndexAndRefresh(index)
+
+proc jumpToStart*(self: Dialogue) =
+  ## Changes the current line to the starting line.
+  self.jumpTo(0)
 
 func hasPause*(self: Dialogue): bool =
   ## Returns true if the current line is a stop line.
@@ -171,6 +164,11 @@ proc choose*(self: Dialogue, choice: int) =
   if self.simpleLine.kind == Menu and choice < choices.len:
     self.jump(choices[choice])
 
+proc reset*(self: Dialogue) =
+  ## Resets the dialogue to its original state.
+  self.variables.clear()
+  self.jumpToStart()
+
 func `$`*(self: Dialogue): string =
   ## Returns a string from a dialogue.
   result = ""
@@ -178,48 +176,3 @@ func `$`*(self: Dialogue): string =
     result.add($line)
     if i != self.lines.len - 1:
       result.add('\n')
-
-#
-
-func newDialogueBuilder*(): DialogueBuilder =
-  ## Creates a new dialogue builder.
-  DialogueBuilder()
-
-func addLine*(self: DialogueBuilder, line: Line): DialogueBuilder =
-  ## Adds a line.
-  self.lines.add(line)
-  self
-
-func addLines*(self: DialogueBuilder, lines: varargs[Line]): DialogueBuilder =
-  ## Adds one line or more lines.
-  self.lines.add(lines)
-  self
-
-func addVariable*(self: DialogueBuilder, name, value: string): DialogueBuilder =
-  ## Adds a variable.
-  self.variables[name] = value
-  self
-
-func addProcedure*(
-    self: DialogueBuilder,
-    name: string,
-    value: DialogueProcedure
-    ): DialogueBuilder =
-  ## Adds a procedure.
-  self.procedures[name] = value
-  self
-
-func reset*(self: DialogueBuilder): DialogueBuilder =
-  ## Resets the builder.
-  self.lines = seq[Line].default()
-  self.labels = LabelTable.default()
-  self.variables = VariableTable.default()
-  self.procedures = ProcedureTable.default()
-  self
-
-proc build*(self: DialogueBuilder): Dialogue =
-  ## Creates a new dialogue.
-  result = newDialogue(self.lines)
-  result.variables = self.variables
-  result.procedures = self.procedures
-  result.refresh()

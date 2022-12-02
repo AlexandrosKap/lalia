@@ -54,28 +54,22 @@ Procedures
 ```nim
 proc newDialogue*(lines: varargs[Line]): Dialogue
 func index*(self: Dialogue): int
+func simpleLine*(self: Dialogue): Line
 func line*(self: Dialogue): Line
 func lines*(self: Dialogue): seq[Line]
 func labels*(self: Dialogue): LabelTable
 func variables*(self: Dialogue): VariableTable
 func procedures*(self: Dialogue): ProcedureTable
 proc update*(self: Dialogue)
-proc reset*(self: Dialogue)
 proc jump*(self: Dialogue, label: string)
 proc jumpTo*(self: Dialogue, index: int)
+proc jumpToStart*(self: Dialogue)
 func hasPause*(self: Dialogue): bool
 func hasMenu*(self: Dialogue): bool
 func choices*(self: Dialogue): seq[string]
 proc choose*(self: Dialogue, choice: int)
+proc reset*(self: Dialogue)
 func `$`*(self: Dialogue): string
-
-func newDialogueBuilder*(): DialogueBuilder
-func addLine*(self: DialogueBuilder, line: Line): DialogueBuilder
-func addLines*(self: DialogueBuilder, lines: varargs[Line]): DialogueBuilder
-func addVariable*(self: DialogueBuilder, name, value: string): DialogueBuilder
-func addProcedure*(self: DialogueBuilder, name: string, value: DialogueProcedure ): DialogueBuilder
-func reset*(self: DialogueBuilder): DialogueBuilder
-proc build*(self: DialogueBuilder): Dialogue
 ```
 
 ## consts

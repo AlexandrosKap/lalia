@@ -1,5 +1,4 @@
 import tables, strutils, strformat
-import consts
 
 type
   ExpressionError* = object of CatchableError
@@ -10,7 +9,7 @@ func newExpressionError*(expression: string): ref ExpressionError =
 
 func isValidNameChar*(c: char): bool =
   ## Returns true if the character is a valid variable name character.
-  c.isAlphaAscii or c == variableChar
+  c.isAlphaAscii or c == '_'
 
 func replace*(text: string, token: char, table: Table[string, string]): string =
   ## Returns a string with certain words replaced with words from a table.

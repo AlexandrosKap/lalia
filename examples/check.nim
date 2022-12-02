@@ -6,11 +6,13 @@ var dialogue = newDialogue(
   menuLine("NO|YES", "No.|Yes."),
 
   labelLine "YES",
-  variableLine "$_ + 1",
+  calculationLine "$_ + 1",
   jumpLine "START",
+
   labelLine "NO",
   textLine "...",
-
+  # If "_" is 0, then go to the next line."
+    # Else skip the next line.
   checkLine "$_ = 0",
   textLine "Ok.",
   checkLine "$_ = 1",
@@ -30,3 +32,4 @@ while not dialogue.hasPause:
     dialogue.choose(input)
   echo dialogue.line.content
   dialogue.update()
+echo dialogue.variables
