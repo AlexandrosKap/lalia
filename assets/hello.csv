@@ -1,0 +1,6 @@
+Text,"","Hi!"
+Jump,"END",""
+Text,"","Please don't look at me."
+Label,"END",""
+Text,"","The end."
+Pause,"",""

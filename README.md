@@ -8,14 +8,15 @@ It is simple by default, but can easily be extended to something powerful when n
 
 ## Features
 
-- Easy to use
-- Labels
-- Menus
-- Variables
-- Procedures
-- Conditional statements
-- Mathematical operations
-- Syntax inspired by Assembly
+* Easy
+* Labels
+* Menus
+* Variables
+* Procedures
+* Conditional statements
+* Mathematical operations
+* Supports csv, md and ink files (TODO)
+* Syntax inspired by Assembly
 
 ## Examples
 

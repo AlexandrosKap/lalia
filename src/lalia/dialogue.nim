@@ -1,4 +1,4 @@
-import tables
+import tables, parsecsv
 import consts, utils, line
 
 type
@@ -34,7 +34,7 @@ func getName(self: Line, dialogue: Dialogue): string =
 func setIndex(self: Dialogue, value: int)
 proc refresh(self: Dialogue)
 
-template setIndexAndRefresh(self: Dialogue, value: int): untyped =
+template setIndexAndRefresh(self: Dialogue, value: int) =
   ## Helper template to avoid typing the same thing again and again.
   self.setIndex(value)
   self.refresh()
@@ -93,7 +93,24 @@ proc newDialogue*(lines: varargs[Line]): Dialogue =
     result.lines.add(line)
     if line.kind == Label:
       result.labels[line.info] = i
-  result.lines.add(pauseLine())
+  if result.lines[^1].kind != Pause:
+    result.lines.add(pauseLine())
+  result.refresh()
+
+proc newDialogueFromCsv*(csvPath: string): Dialogue =
+  ## Creates a new dialogue from a csv file.
+  result = Dialogue()
+  var i = 0
+  var parser: CsvParser
+  parser.open(csvPath)
+  while parser.readRow():
+    let line = line(parser.row)
+    result.lines.add(line)
+    if line.kind == Label:
+      result.labels[line.info] = i
+    i += 1
+  if result.lines[^1].kind != Pause:
+    result.lines.add(pauseLine())
   result.refresh()
 
 func index*(self: Dialogue): int =

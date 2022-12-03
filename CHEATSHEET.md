@@ -26,6 +26,7 @@ Procedures
 
 ```nim
 func newLineError*(line: Line): ref LineError
+func lineKind*(text: string): LineKind
 func pauseLine*(): Line
 func commentLine*(info: string): Line
 func textLine*(info, content: string): Line
@@ -40,6 +41,7 @@ func calculationLine*(content: string): Line
 func procedureLine*(info, content: string): Line
 func procedureLine*(content: string): Line
 func checkLine*(info: string): Line
+func line*(data: openArray[string]): Line
 func splitInfo*(self: Line): seq[string]
 func splitContent*(self: Line): seq[string]
 func replaceInfo*(self: Line, table: Table[string, string]): string
@@ -53,6 +55,7 @@ Procedures
 
 ```nim
 proc newDialogue*(lines: varargs[Line]): Dialogue
+proc newDialogueFromCsv*(csvPath: string): Dialogue
 func index*(self: Dialogue): int
 func simpleLine*(self: Dialogue): Line
 func line*(self: Dialogue): Line

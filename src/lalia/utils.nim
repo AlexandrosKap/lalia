@@ -37,7 +37,7 @@ func replace*(text: string, token: char, table: Table[string, string]): string =
       result.add(table[buffer])
 
 func expression(a: int, op: char, b: int): int =
-  ## The base of the calc procedure.
+  ## The base of the calculate procedure.
   case op:
   of '+': a + b
   of '-': a - b
