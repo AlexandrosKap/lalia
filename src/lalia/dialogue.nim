@@ -3,16 +3,18 @@ import consts, utils, line
 
 type
   DialogueProcedure* = proc(text: string): string
-  LabelTable* = Table[string, int]
-  VariableTable* = Table[string, string]
-  ProcedureTable* = Table[string, DialogueProcedure]
+
+  DialogueTable*[T] = Table[string, T]
+  LabelTable* = DialogueTable[int]
+  VariableTable* = DialogueTable[string]
+  ProcedureTable* = DialogueTable[DialogueProcedure]
 
   Dialogue* = ref object
     index: int
     lines: seq[Line]
     labels: LabelTable
-    variables: VariableTable
-    procedures: ProcedureTable
+    variables*: VariableTable
+    procedures*: ProcedureTable
 
 func replaceInfo(self: Line, dialogue: Dialogue): string =
   ## Helper function for replacing the line info.
@@ -119,14 +121,6 @@ func labels*(self: Dialogue): LabelTable =
   ## Returns the labels.
   self.labels
 
-func variables*(self: Dialogue): VariableTable =
-  ## Returns the variables.
-  self.variables
-
-func procedures*(self: Dialogue): ProcedureTable =
-  ## Returns the procedures.
-  self.procedures
-
 proc update*(self: Dialogue) =
   ## Updates the dialogue.
   self.setIndexAndRefresh(self.index + 1)
@@ -166,8 +160,52 @@ proc choose*(self: Dialogue, choice: int) =
 
 proc reset*(self: Dialogue) =
   ## Resets the dialogue to its original state.
+  ## All variables will be deleted and the index is set to the first valid line.
   self.variables.clear()
   self.jumpToStart()
+
+proc changeLines*(self: Dialogue, lines: varargs[Line]) =
+  ## Changes the lines of the dialogue.
+  self.labels.clear()
+  self.lines.setLen(0)
+  for i, line in lines:
+    self.lines.add(line)
+    if line.kind == Label:
+      self.labels[line.info] = i
+  self.lines.add(pauseLine())
+  self.jumpToStart()
+
+template addThing[T](self: Dialogue, table, property: DialogueTable[T]) =
+  ## Helper template to add new things to the dialogue property.
+  for key, value in table:
+    if not property.hasKey(key):
+      property[key] = value
+
+template deleteThing[T](
+    self: Dialogue,
+    keys: varargs[string],
+    property: DialogueTable[T]
+  ) =
+  ## Helper template to delete things from the dialogue property.
+  for key in keys:
+    if property.hasKey(key):
+      property.del(key)
+
+func addVariables*(self: Dialogue, table: VariableTable) =
+  ## Adds new variables to the dialogue.
+  self.addThing(table, self.variables)
+
+func deleteVariables*(self: Dialogue, names: varargs[string]) =
+  ## Deletes variables from the dialogue.
+  self.deleteThing(names, self.variables)
+
+func addProcedures*(self: Dialogue, table: ProcedureTable) =
+  ## Adds new procedures to the dialogue.
+  self.addThing(table, self.procedures)
+
+func deleteProcedures*(self: Dialogue, names: varargs[string]) =
+  ## Deletes procedures from the dialogue.
+  self.deleteThing(names, self.procedures)
 
 func `$`*(self: Dialogue): string =
   ## Returns a string from a dialogue.

@@ -1,3 +1,4 @@
 import tables
-import lalia/line, lalia/dialogue
-export tables, line, dialogue
+export tables
+import lalia/utils, lalia/line, lalia/dialogue
+export utils, line, dialogue

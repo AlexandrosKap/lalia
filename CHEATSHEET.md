@@ -58,8 +58,6 @@ func simpleLine*(self: Dialogue): Line
 func line*(self: Dialogue): Line
 func lines*(self: Dialogue): seq[Line]
 func labels*(self: Dialogue): LabelTable
-func variables*(self: Dialogue): VariableTable
-func procedures*(self: Dialogue): ProcedureTable
 proc update*(self: Dialogue)
 proc jump*(self: Dialogue, label: string)
 proc jumpTo*(self: Dialogue, index: int)
@@ -69,6 +67,11 @@ func hasMenu*(self: Dialogue): bool
 func choices*(self: Dialogue): seq[string]
 proc choose*(self: Dialogue, choice: int)
 proc reset*(self: Dialogue)
+proc changeLines*(self: Dialogue, lines: varargs[Line])
+func addVariables*(self: Dialogue, table: VariableTable)
+func deleteVariables*(self: Dialogue, names: varargs[string])
+func addProcedures*(self: Dialogue, table: ProcedureTable)
+func deleteProcedures*(self: Dialogue, names: varargs[string])
 func `$`*(self: Dialogue): string
 ```
 

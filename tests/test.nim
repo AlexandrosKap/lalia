@@ -1,5 +1,5 @@
 import unittest
-import lalia/utils
+import lalia
 
 test "calculus1":
   check calculate("") == 0
