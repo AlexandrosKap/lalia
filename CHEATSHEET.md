@@ -42,6 +42,7 @@ func procedureLine*(info, content: string): Line
 func procedureLine*(content: string): Line
 func checkLine*(info: string): Line
 func line*(data: openArray[string]): Line
+proc linesFromCsv*(path: string): seq[Line]
 func splitInfo*(self: Line): seq[string]
 func splitContent*(self: Line): seq[string]
 func replaceInfo*(self: Line, table: Table[string, string]): string
@@ -55,7 +56,7 @@ Procedures
 
 ```nim
 proc newDialogue*(lines: varargs[Line]): Dialogue
-proc newDialogueFromCsv*(csvPath: string): Dialogue
+proc newDialogueFromCsv*(path: string): Dialogue
 func index*(self: Dialogue): int
 func simpleLine*(self: Dialogue): Line
 func line*(self: Dialogue): Line
@@ -71,6 +72,7 @@ func choices*(self: Dialogue): seq[string]
 proc choose*(self: Dialogue, choice: int)
 proc reset*(self: Dialogue)
 proc changeLines*(self: Dialogue, lines: varargs[Line])
+proc changeLinesFromCsv*(self: Dialogue, path: string)
 func addVariables*(self: Dialogue, table: VariableTable)
 func deleteVariables*(self: Dialogue, names: varargs[string])
 func addProcedures*(self: Dialogue, table: ProcedureTable)

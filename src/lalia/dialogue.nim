@@ -1,4 +1,4 @@
-import tables, parsecsv
+import tables
 import consts, utils, line
 
 type
@@ -86,31 +86,31 @@ proc refresh(self: Dialogue) =
   of Pause, Text, Menu:
     discard
 
+func defaultVariables(): VariableTable =
+  ## Creates the default variables value.
+  result = VariableTable()
+  result[amoonguss] = "0"
+
 proc newDialogue*(lines: varargs[Line]): Dialogue =
   ## Creates a new dialogue.
-  result = Dialogue(variables: {amoonguss: "0"}.toTable)
+  result = Dialogue(variables: defaultVariables())
   for i, line in lines:
     result.lines.add(line)
     if line.kind == Label:
       result.labels[line.info] = i
-  if result.lines[^1].kind != Pause:
+  if lines.len > 0 and lines[^1].kind != Pause:
     result.lines.add(pauseLine())
   result.refresh()
 
-proc newDialogueFromCsv*(csvPath: string): Dialogue =
+proc newDialogueFromCsv*(path: string): Dialogue =
   ## Creates a new dialogue from a csv file.
-  result = Dialogue()
-  var i = 0
-  var parser: CsvParser
-  parser.open(csvPath)
-  while parser.readRow():
-    let line = line(parser.row)
-    result.lines.add(line)
+  result = Dialogue(
+    lines: linesFromCsv(path),
+    variables: defaultVariables(),
+  )
+  for i, line in result.lines:
     if line.kind == Label:
       result.labels[line.info] = i
-    i += 1
-  if result.lines[^1].kind != Pause:
-    result.lines.add(pauseLine())
   result.refresh()
 
 func index*(self: Dialogue): int =
@@ -178,7 +178,7 @@ proc choose*(self: Dialogue, choice: int) =
 proc reset*(self: Dialogue) =
   ## Resets the dialogue to its original state.
   ## All variables will be deleted and the index is set to the first valid line.
-  self.variables.clear()
+  self.variables = defaultVariables()
   self.jumpToStart()
 
 proc changeLines*(self: Dialogue, lines: varargs[Line]) =
@@ -189,7 +189,19 @@ proc changeLines*(self: Dialogue, lines: varargs[Line]) =
     self.lines.add(line)
     if line.kind == Label:
       self.labels[line.info] = i
-  self.lines.add(pauseLine())
+  if lines.len > 0 and lines[^1].kind != Pause:
+    self.lines.add(pauseLine())
+  self.jumpToStart()
+
+proc changeLinesFromCsv*(self: Dialogue, path: string) =
+  ## Changes the lines of the dialogue with lines from a csv file.
+  self.labels.clear()
+  self.lines = linesFromCsv(path)
+  for i, line in self.lines:
+    if line.kind == Label:
+      self.labels[line.info] = i
+  if self.lines.len > 0 and self.lines[^1].kind != Pause:
+    self.lines.add(pauseLine())
   self.jumpToStart()
 
 template addThing[T](self: Dialogue, table, property: DialogueTable[T]) =

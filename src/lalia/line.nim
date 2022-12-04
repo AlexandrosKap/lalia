@@ -1,4 +1,4 @@
-import tables, strutils, strformat
+import tables, strutils, strformat, streams, parsecsv
 import consts, utils
 
 type
@@ -105,6 +105,19 @@ func line*(data: openArray[string]): Line =
     info: data[1],
     content: data[2],
   )
+
+proc linesFromCsv*(path: string): seq[Line] =
+  ## Creates lines from a csv file.
+  result = newSeq[Line]()
+  var stream = newFileStream(path)
+  var parser: CsvParser
+  parser.open(stream, path)
+  parser.readHeaderRow()
+  while parser.readRow():
+    result.add(line(parser.row))
+  if result.len > 0 and result[^1].kind != Pause:
+    result.add(pauseLine())
+  parser.close()
 
 func splitInfo*(self: Line): seq[string] =
   ## Splits the info.

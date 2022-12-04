@@ -1,0 +1,12 @@
+Kind,Info,Content
+Text,"","What should I do?"
+Menu,"COFFEE|TEA","Drink coffee.|Drink tea."
+Label,"COFFEE",""
+Text,"","I drink coffee."
+Jump,"END",""
+Label,"TEA",""
+Text,"","I drink tea."
+Jump,"END",""
+Label,"END",""
+Text,"","The end."
+Pause,"",""

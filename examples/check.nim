@@ -12,9 +12,9 @@ var dialogue = newDialogue(
   labelLine "NO",
   textLine "...",
   # If "_" is 0, then go to the next line."
-    # Else skip the next line.
   checkLine "$_ = 0",
   textLine "Ok.",
+  # Else skip the next line.
   checkLine "$_ = 1",
   textLine "You said yes 1 time.",
   checkLine "$_ > 1",
