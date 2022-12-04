@@ -8,20 +8,18 @@ It is simple by default, but can easily be extended to something powerful when n
 
 ## Features
 
-* Easy
 * Labels
 * Menus
 * Variables
 * Procedures
 * Conditional statements
 * Mathematical operations
-* Supports csv, md and ink files (TODO)
+* CSV and Markdown support
 * Syntax inspired by Assembly
 
 ## Examples
 
-A hello-world example.
-More examples can be found in the examples directory.
+A hello-world example:
 
 ```nim
 import lalia
@@ -40,20 +38,21 @@ while not dialogue.hasPause:
 echo "\n", dialogue
 ```
 
+More examples can be found in the examples directory.
+
 ## Documentation
 
-There is no documentation.
-Read the CHEATSHEET.md file in the repo for now.
+There is no documentation. (TODO)
 
 ## Installation
 
-Copy and paste the following commands into a terminal.
+Copy and paste the following command into a terminal:
 
 ```sh
 nimble install -y https://github.com/AlexandrosKap/lalia
 ```
 
-Add Lalia to your .nimble file.
+Add Lalia as a dependency to a .nimble file:
 
 ```
 requires "https://github.com/AlexandrosKap/lalia"
