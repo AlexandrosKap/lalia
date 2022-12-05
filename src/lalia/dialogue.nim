@@ -77,11 +77,13 @@ proc refresh(self: Dialogue) =
     let name = line.getName(self)
     let content = line.replaceContent(self)
     let start = content.find(' ')
-    if name in self.variables and start > 0 and start < content.len - 1:
+    if start > 0 and start < content.len - 1:
       let procedureName = content[0 ..< start]
       let procedureText = content[start + 1 .. ^1]
-      if procedureName in self.procedures:
+      if name in self.variables and procedureName in self.procedures:
         self.variables[name] = self.procedures[procedureName](procedureText)
+    elif name in self.variables and content in self.procedures:
+      self.variables[name] = self.procedures[content]("")
     self.setIndexAndRefresh(self.index + 1)
   of Pause, Text, Menu:
     discard
@@ -144,7 +146,8 @@ proc update*(self: Dialogue) =
 
 proc jump*(self: Dialogue, label: string) =
   ## Changes the current line by using a label.
-  self.setIndexAndRefresh(self.labels[label])
+  if label in self.labels:
+    self.setIndexAndRefresh(self.labels[label])
 
 proc jumpTo*(self: Dialogue, index: int) =
   ## Changes the current line to a specific line.
