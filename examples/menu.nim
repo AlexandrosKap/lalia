@@ -3,7 +3,9 @@ import lalia, strutils
 var dialogue = newDialogue(
   textLine "What should I do?",
   # Jump to the label "COFFE" or "TEA".
-  menuLine("COFFEE|TEA", "Drink coffee.|Drink tea."),
+    # The order of the labels in the dialogue is important.
+  menuLine "Drink coffee.|Drink tea.",
+  # Or: menuLine("COFFEE|TEA", "Drink coffee.|Drink tea."),
 
   labelLine "COFFEE",
   textLine "I drink coffee.",

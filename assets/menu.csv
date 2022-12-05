@@ -1,6 +1,6 @@
 Kind,Info,Content
 Text,"","What should I do?"
-Menu,"COFFEE|TEA","Drink coffee.|Drink tea."
+Menu,"","Drink coffee.|Drink tea."
 Label,"COFFEE",""
 Text,"","I drink coffee."
 Jump,"END",""

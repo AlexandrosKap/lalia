@@ -68,6 +68,10 @@ func menuLine*(info, content: string): Line =
   ## Creates a new menu line.
   Line(kind: Menu, info: info, content: content)
 
+func menuLine*(content: string): Line =
+  ## Creates a new menu line with no info.
+  Line(kind: Menu, info: emptyString, content: content)
+
 func variableLine*(info, content: string): Line =
   ## Creates a new variable line.
   Line(kind: Variable, info: info, content: content)

@@ -154,6 +154,10 @@ proc jumpToStart*(self: Dialogue) =
   ## Changes the current line to the starting line.
   self.jumpTo(0)
 
+proc jumpToEnd*(self: Dialogue) =
+  ## Changes the current line to the ending line.
+  self.jumpTo(self.lines.len - 1)
+
 func hasPause*(self: Dialogue): bool =
   ## Returns true if the current line is a stop line.
   self.simpleLine.kind == Pause
@@ -171,9 +175,24 @@ func choices*(self: Dialogue): seq[string] =
 
 proc choose*(self: Dialogue, choice: int) =
   ## Selects an choice from the current choices.
-  let choices = self.simpleLine.splitInfo()
-  if self.simpleLine.kind == Menu and choice < choices.len:
-    self.jump(choices[choice])
+  let line = self.line
+  if line.info.len == 0:
+    var labelCount = 0
+    var i = self.index + 1
+    while true:
+      if i >= self.lines.len:
+        self.jumpToEnd()
+        break
+      if self.lines[i].kind == Label:
+        labelCount += 1
+        if labelCount == choice + 1:
+          self.jump(self.lines[i].replaceInfo(self))
+          break
+      i += 1
+  else:
+    let choices = line.splitInfo()
+    if line.kind == Menu and choice < choices.len:
+      self.jump(choices[choice])
 
 proc reset*(self: Dialogue) =
   ## Resets the dialogue to its original state.

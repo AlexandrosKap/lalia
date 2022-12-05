@@ -1,7 +1,7 @@
 What should I do?
 
-* COFFEE|Drink coffee.
-* TEA|Drink tea.
+* Drink coffee.
+* Drink tea.
 
 # COFFEE
 I drink coffee.

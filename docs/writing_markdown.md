@@ -17,9 +17,8 @@ Hello hello!
 ### Menu Line
 
 ```md
-* LABEL1|Choice number 1.
-* LABEL2|Choice number 2.
-* LABEL3|Choice number 3.
+* Choice number 1.
+* Choice number 2.
 ```
 
 ### Comment Line

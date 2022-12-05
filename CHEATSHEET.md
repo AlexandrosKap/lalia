@@ -34,6 +34,7 @@ func textLine*(content: string): Line
 func labelLine*(info: string): Line
 func jumpLine*(info: string): Line
 func menuLine*(info, content: string): Line
+func menuLine*(content: string): Line
 func variableLine*(info, content: string): Line
 func variableLine*(content: string): Line
 func calculationLine*(info, content: string): Line
@@ -66,6 +67,7 @@ proc update*(self: Dialogue)
 proc jump*(self: Dialogue, label: string)
 proc jumpTo*(self: Dialogue, index: int)
 proc jumpToStart*(self: Dialogue)
+proc jumpToEnd*(self: Dialogue)
 func hasPause*(self: Dialogue): bool
 func hasMenu*(self: Dialogue): bool
 func choices*(self: Dialogue): seq[string]
