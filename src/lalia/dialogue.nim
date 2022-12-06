@@ -1,4 +1,4 @@
-import tables
+import tables, strutils
 import consts, utils, line
 
 type
@@ -52,8 +52,22 @@ proc refresh(self: Dialogue) =
   of Comment, Label:
     self.setIndexAndRefresh(self.index + 1)
   of Jump:
-    let label = line.replaceInfo(self)
-    if label in self.labels:
+    let label = line.info
+    if label.len == 0:
+      # TODO: Make this a function???
+      # TODO: It's buggy but dont care for now.
+      var i = self.index + 1
+      while true:
+        if i >= self.lines.len:
+          self.setIndexAndRefresh(self.lines.len - 1)
+          break
+        elif self.lines[i].kind == Label:
+          let tempLabel = self.lines[i].info
+          if tempLabel.startsWith(amoonguss) and tempLabel in self.labels:
+            self.setIndexAndRefresh(self.labels[tempLabel])
+            break
+        i += 1
+    elif label in self.labels:
       self.setIndexAndRefresh(self.labels[label])
     else:
       self.setIndexAndRefresh(self.index + 1)
@@ -99,21 +113,17 @@ proc newDialogue*(lines: varargs[Line]): Dialogue =
   for i, line in lines:
     result.lines.add(line)
     if line.kind == Label:
-      result.labels[line.info] = i
+      if line.info.len == 0:
+        result.labels[amoonguss & intToStr(i)] = i
+      else:
+        result.labels[line.info] = i
   if lines.len > 0 and lines[^1].kind != Pause:
     result.lines.add(pauseLine())
   result.refresh()
 
 proc newDialogueFromCsv*(path: string): Dialogue =
   ## Creates a new dialogue from a csv file.
-  result = Dialogue(
-    lines: linesFromCsv(path),
-    variables: defaultVariables(),
-  )
-  for i, line in result.lines:
-    if line.kind == Label:
-      result.labels[line.info] = i
-  result.refresh()
+  newDialogue(linesFromCsv(path))
 
 func index*(self: Dialogue): int =
   ## Returns the index.
@@ -186,7 +196,7 @@ proc choose*(self: Dialogue, choice: int) =
       if i >= self.lines.len:
         self.jumpToEnd()
         break
-      if self.lines[i].kind == Label:
+      elif self.lines[i].kind == Label:
         labelCount += 1
         if labelCount == choice + 1:
           self.jump(self.lines[i].replaceInfo(self))
@@ -210,21 +220,17 @@ proc changeLines*(self: Dialogue, lines: varargs[Line]) =
   for i, line in lines:
     self.lines.add(line)
     if line.kind == Label:
-      self.labels[line.info] = i
+      if line.info.len == 0:
+        self.labels[amoonguss & intToStr(i)] = i
+      else:
+        self.labels[line.info] = i
   if lines.len > 0 and lines[^1].kind != Pause:
     self.lines.add(pauseLine())
   self.jumpToStart()
 
 proc changeLinesFromCsv*(self: Dialogue, path: string) =
   ## Changes the lines of the dialogue with lines from a csv file.
-  self.labels.clear()
-  self.lines = linesFromCsv(path)
-  for i, line in self.lines:
-    if line.kind == Label:
-      self.labels[line.info] = i
-  if self.lines.len > 0 and self.lines[^1].kind != Pause:
-    self.lines.add(pauseLine())
-  self.jumpToStart()
+  self.changeLines(linesFromCsv(path))
 
 template addThing[T](self: Dialogue, table, property: DialogueTable[T]) =
   ## Helper template to add new things to the dialogue property.

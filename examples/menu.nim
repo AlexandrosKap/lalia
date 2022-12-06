@@ -7,16 +7,20 @@ var dialogue = newDialogue(
 
   labelLine "COFFEE",
   textLine "I drink coffee.",
-  jumpLine "END",
+  # Jump to the next anonymous label.
+  jumpLine "",
 
   labelLine "TEA",
   textLine "I drink tea.",
-  jumpLine "END",
+  # Jump to the next anonymous label.
+  jumpLine "",
 
-  labelLine "END",
+  # An anonymous label.
+  labelLine "",
   textLine "The end.",
 )
 
+echo dialogue.labels
 while not dialogue.hasPause:
   while dialogue.hasMenu:
     for i, choice in dialogue.choices:

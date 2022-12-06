@@ -5,7 +5,7 @@ type
 
 func newExpressionError*(expression: string): ref ExpressionError =
   ## Creates a new expression error.
-  newException(ExpressionError, fmt"The expression is incorrect: {expression}")
+  newException(ExpressionError, &"The expression is incorrect: {expression}")
 
 func isValidNameChar*(c: char): bool =
   ## Returns true if the character is a valid variable name character.
@@ -48,7 +48,7 @@ func expression(a: int, op: char, b: int): int =
   of '>': int(a > b)
   of '=': int(a == b)
   of '!': int(a != b)
-  else: raise newExpressionError(fmt"{a}{op}{b}")
+  else: raise newExpressionError(&"{a}{op}{b}")
 
 func calculate*(text: string): int =
   ## Returns an int by evaluating an expression from a string.
