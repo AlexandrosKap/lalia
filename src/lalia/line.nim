@@ -40,70 +40,26 @@ func lineKind*(text: string): LineKind =
   of $Check: Check
   else: Pause
 
-func pauseLine*(): Line =
-  ## Creates a new pause line.
-  Line(kind: Pause, info: emptyString, content: emptyString)
+func line*(kind: LineKind, info, content: string): Line =
+  ## Creates a new line.
+  Line(kind: kind, info: info, content: content)
 
-func commentLine*(info: string): Line =
-  ## Creates a new comment line.
-  Line(kind: Comment, info: info, content: emptyString)
+func lineWithNoInfo*(kind: LineKind, content: string): Line =
+  ## Creates a new line with no info.
+  Line(kind: kind, content: content)
 
-func textLine*(info, content: string): Line =
-  ## Creates a new text line.
-  Line(kind: Text, info: info, content: content)
+func lineWithNoContent*(kind: LineKind, info: string): Line =
+  ## Creates a new line with no content.
+  Line(kind: kind, info: info)
 
-func textLine*(content: string): Line =
-  ## Creates a new text line with no info.
-  Line(kind: Text, info: emptyString, content: content)
+func lineWithNothing*(kind: LineKind): Line =
+  ## Creates an empty line.
+  Line(kind: kind)
 
-func labelLine*(info: string): Line =
-  ## Creates a new label line.
-  Line(kind: Label, info: info, content: emptyString)
-
-func jumpLine*(info: string): Line =
-  ## Creates a new jump line.
-  Line(kind: Jump, info: info, content: emptyString)
-
-func menuLine*(info, content: string): Line =
-  ## Creates a new menu line.
-  Line(kind: Menu, info: info, content: content)
-
-func menuLine*(content: string): Line =
-  ## Creates a new menu line with no info.
-  Line(kind: Menu, info: emptyString, content: content)
-
-func variableLine*(info, content: string): Line =
-  ## Creates a new variable line.
-  Line(kind: Variable, info: info, content: content)
-
-func variableLine*(content: string): Line =
-  ## Creates a new variable line with no info.
-  Line(kind: Variable, info: emptyString, content: content)
-
-func calculationLine*(info, content: string): Line =
-  ## Creates a new calculation line.
-  Line(kind: Calculation, info: info, content: content)
-
-func calculationLine*(content: string): Line =
-  ## Creates a new calculation line with no info.
-  Line(kind: Calculation, info: emptyString, content: content)
-
-func procedureLine*(info, content: string): Line =
-  ## Creates a new procedure line.
-  Line(kind: Procedure, info: info, content: content)
-
-func procedureLine*(content: string): Line =
-  ## Creates a new procedure line with no info.
-  Line(kind: Procedure, info: emptyString, content: content)
-
-func checkLine*(info: string): Line =
-  ## Creates a new check line.
-  Line(kind: Check, info: info, content: emptyString)
-
-func line*(data: openArray[string]): Line =
+func lineFromArray*(data: openArray[string]): Line =
   ## Creates a new line from an array.
   if data.len != 3:
-    return pauseLine()
+    return Line(kind: Pause)
   Line(
     kind: data[0].lineKind,
     info: data[1],
@@ -118,10 +74,26 @@ proc linesFromCsv*(path: string): seq[Line] =
   parser.open(stream, path)
   parser.readHeaderRow()
   while parser.readRow():
-    result.add(line(parser.row))
+    result.add(lineFromArray(parser.row))
   if result.len > 0 and result[^1].kind != Pause:
-    result.add(pauseLine())
+    result.add(lineWithNothing(Pause))
   parser.close()
+
+func pauseLine*(): Line = lineWithNothing(Pause)
+func commentLine*(info: string): Line = lineWithNoContent(Comment, info)
+func textLine*(info, content: string): Line = line(Text, info, content)
+func textLine*(content: string): Line = lineWithNoInfo(Text, content)
+func labelLine*(info: string): Line = lineWithNoContent(Label, info)
+func jumpLine*(info: string): Line = lineWithNoContent(Jump, info)
+func menuLine*(info, content: string): Line = line(Menu, info, content)
+func menuLine*(content: string): Line = lineWithNoInfo(Menu, content)
+func variableLine*(info, content: string): Line = line(Variable, info, content)
+func variableLine*(content: string): Line = lineWithNoInfo(Variable, content)
+func calculationLine*(info, content: string): Line = line(Calculation, info, content)
+func calculationLine*(content: string): Line = lineWithNoInfo(Calculation, content)
+func procedureLine*(info, content: string): Line = line(Procedure, info, content)
+func procedureLine*(content: string): Line = lineWithNoInfo(Procedure, content)
+func checkLine*(info: string): Line = lineWithNoContent(Check, info)
 
 func splitInfo*(self: Line): seq[string] =
   ## Splits the info.

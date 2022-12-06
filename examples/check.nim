@@ -3,7 +3,7 @@ import lalia, strutils
 var dialogue = newDialogue(
   labelLine "START",
   textLine "Say yes!",
-  menuLine("NO|YES", "No.|Yes."),
+  menuLine "Yes.|No.",
 
   labelLine "YES",
   calculationLine "$_ + 1",
