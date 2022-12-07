@@ -23,7 +23,7 @@ type
 
 func newLineError*(line: Line): ref LineError =
   ## Creates a new line error.
-  newException(LineError, fmt"The line is incorrect: {line}")
+  newException(LineError, &"The line is incorrect: {line}")
 
 func lineKind*(text: string): LineKind =
   ## Creates a new line kind from a string.

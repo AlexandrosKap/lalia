@@ -16,20 +16,10 @@ type
     variables*: VariableTable
     procedures*: ProcedureTable
 
-func replaceInfo(self: Line, dialogue: Dialogue): string =
-  ## Helper function for replacing the line info.
-  self.replaceInfo(dialogue.variables)
-
-func replaceContent(self: Line, dialogue: Dialogue): string =
-  ## Helper function for replacing the line content.
-  self.replaceContent(dialogue.variables)
-
-func getName(self: Line, dialogue: Dialogue): string =
-  ## Helper function to get the name of a variable from a line.
-  if self.info.len > 0:
-    self.replaceInfo(dialogue)
-  else:
-    amoonguss
+func defaultVariables(): VariableTable =
+  ## Creates the default variables value.
+  result = VariableTable()
+  result[amoonguss] = "0"
 
 func setIndex(self: Dialogue, value: int)
 proc refresh(self: Dialogue)
@@ -47,65 +37,62 @@ func setIndex(self: Dialogue, value: int) =
 
 proc refresh(self: Dialogue) =
   ## Reloads the current line until a valid line is found.
-  let line = self.lines[self.index]
+  let simpleLine = self.lines[self.index]
+  let line = Line(
+    kind: simpleLine.kind,
+    info: simpleLine.replaceInfo(self.variables),
+    content: simpleLine.replaceContent(self.variables),
+  )
   case line.kind:
   of Comment, Label:
     self.setIndexAndRefresh(self.index + 1)
   of Jump:
-    let label = line.info
-    if label.len == 0:
-      # TODO: Make this a function???
-      # TODO: It's buggy but dont care for now.
+    if line.info.len == 0:
       var i = self.index + 1
       while true:
         if i >= self.lines.len:
           self.setIndexAndRefresh(self.lines.len - 1)
           break
         elif self.lines[i].kind == Label:
-          let tempLabel = self.lines[i].info
-          if tempLabel.startsWith(amoonguss) and tempLabel in self.labels:
-            self.setIndexAndRefresh(self.labels[tempLabel])
+          let label = self.lines[i].info
+          if label.startsWith(amoonguss) and label in self.labels:
+            self.setIndexAndRefresh(self.labels[label])
             break
         i += 1
-    elif label in self.labels:
-      self.setIndexAndRefresh(self.labels[label])
+    elif line.info in self.labels:
+      self.setIndexAndRefresh(self.labels[line.info])
     else:
       self.setIndexAndRefresh(self.index + 1)
   of Variable:
-    self.variables[line.getName(self)] = line.replaceContent(self)
+    let name = if line.info.len != 0: line.info else: amoonguss
+    self.variables[name] = line.content
     self.setIndexAndRefresh(self.index + 1)
   of Check:
     try:
-      if line.replaceInfo(self).calculate != 0:
+      if line.info.calculate != 0:
         self.setIndexAndRefresh(self.index + 1)
       else:
         self.setIndexAndRefresh(self.index + 2)
     except:
       self.setIndexAndRefresh(self.index + 2)
   of Calculation:
-    let name = line.getName(self)
+    let name = if line.info.len != 0: line.info else: amoonguss
     if name in self.variables:
-      self.variables[name] = line.replaceContent(self).calculateAndConvert
+      self.variables[name] = line.content.calculateAndConvert()
     self.setIndexAndRefresh(self.index + 1)
   of Procedure:
-    let name = line.getName(self)
-    let content = line.replaceContent(self)
-    let start = content.find(' ')
-    if start > 0 and start < content.len - 1:
-      let procedureName = content[0 ..< start]
-      let procedureText = content[start + 1 .. ^1]
+    let name = if line.info.len != 0: line.info else: amoonguss
+    let start = line.content.find(' ')
+    if start > 0 and start < line.content.len - 1:
+      let procedureName = line.content[0 ..< start]
+      let procedureText = line.content[start + 1 .. ^1]
       if name in self.variables and procedureName in self.procedures:
         self.variables[name] = self.procedures[procedureName](procedureText)
-    elif name in self.variables and content in self.procedures:
-      self.variables[name] = self.procedures[content]("")
+    elif name in self.variables and line.content in self.procedures:
+      self.variables[name] = self.procedures[line.content]("")
     self.setIndexAndRefresh(self.index + 1)
   of Pause, Text, Menu:
     discard
-
-func defaultVariables(): VariableTable =
-  ## Creates the default variables value.
-  result = VariableTable()
-  result[amoonguss] = "0"
 
 proc newDialogue*(lines: varargs[Line]): Dialogue =
   ## Creates a new dialogue.
@@ -129,16 +116,12 @@ func index*(self: Dialogue): int =
   ## Returns the index.
   self.index
 
-func simpleLine*(self: Dialogue): Line =
-  ## Returns the current line as it is with the variable names.
-  self.lines[self.index]
-
 func line*(self: Dialogue): Line =
   ## Returns the current line.
-  let line = self.simpleLine
+  let line = self.lines[self.index]
   Line(
-    info: line.replaceInfo(self),
-    content: line.replaceContent(self),
+    info: line.replaceInfo(self.variables),
+    content: line.replaceContent(self.variables),
     kind: line.kind,
   )
 
@@ -173,15 +156,15 @@ proc jumpToEnd*(self: Dialogue) =
 
 func hasPause*(self: Dialogue): bool =
   ## Returns true if the current line is a stop line.
-  self.simpleLine.kind == Pause
+  self.lines[self.index].kind == Pause
 
 func hasMenu*(self: Dialogue): bool =
   ## Returns true if the current line is a menu line.
-  self.simpleLine.kind == Menu
+  self.lines[self.index].kind == Menu
 
 func choices*(self: Dialogue): seq[string] =
   ## Returns the current choices.
-  if self.simpleLine.kind == Menu:
+  if self.lines[self.index].kind == Menu:
     self.line.splitContent()
   else:
     @[]
@@ -190,6 +173,7 @@ proc choose*(self: Dialogue, choice: int) =
   ## Selects an choice from the current choices.
   let line = self.line
   if line.info.len == 0:
+    # TODO: Fix bug with anonymous labels.
     var labelCount = 0
     var i = self.index + 1
     while true:
@@ -199,7 +183,7 @@ proc choose*(self: Dialogue, choice: int) =
       elif self.lines[i].kind == Label:
         labelCount += 1
         if labelCount == choice + 1:
-          self.jump(self.lines[i].replaceInfo(self))
+          self.jump(self.lines[i].info)
           break
       i += 1
   else:

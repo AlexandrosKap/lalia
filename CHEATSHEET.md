@@ -1,14 +1,14 @@
 # Cheatsheet
 
 * [lalia](#lalia)
-* [utils](#utils)
-* [line](#line)
-* [dialogue](#dialogue)
-* [consts](#consts)
+* [lalia/utils](#lalia/utils)
+* [lalia/line](#lalia/line)
+* [lalia/dialogue](#lalia/dialogue)
+* [lalia/consts](#lalia/consts)
 
 ## lalia
 
-## utils
+## lalia/utils
 
 Procedures
 
@@ -20,13 +20,19 @@ func calculate*(text: string): int
 func calculateAndConvert*(text: string): string
 ```
 
-## line
+## lalia/line
 
 Procedures
 
 ```nim
 func newLineError*(line: Line): ref LineError
 func lineKind*(text: string): LineKind
+func line*(kind: LineKind, info, content: string): Line
+func lineWithNoInfo*(kind: LineKind, content: string): Line
+func lineWithNoContent*(kind: LineKind, info: string): Line
+func lineWithNothing*(kind: LineKind): Line
+func lineFromArray*(data: openArray[string]): Line
+proc linesFromCsv*(path: string): seq[Line]
 func pauseLine*(): Line
 func commentLine*(info: string): Line
 func textLine*(info, content: string): Line
@@ -42,8 +48,6 @@ func calculationLine*(content: string): Line
 func procedureLine*(info, content: string): Line
 func procedureLine*(content: string): Line
 func checkLine*(info: string): Line
-func line*(data: openArray[string]): Line
-proc linesFromCsv*(path: string): seq[Line]
 func splitInfo*(self: Line): seq[string]
 func splitContent*(self: Line): seq[string]
 func replaceInfo*(self: Line, table: Table[string, string]): string
@@ -51,7 +55,7 @@ func replaceContent*(self: Line, table: Table[string, string]): string
 func `$`*(self: Line): string
 ```
 
-## dialogue
+## lalia/dialogue
 
 Procedures
 
@@ -59,7 +63,6 @@ Procedures
 proc newDialogue*(lines: varargs[Line]): Dialogue
 proc newDialogueFromCsv*(path: string): Dialogue
 func index*(self: Dialogue): int
-func simpleLine*(self: Dialogue): Line
 func line*(self: Dialogue): Line
 func lines*(self: Dialogue): seq[Line]
 func labels*(self: Dialogue): LabelTable
@@ -82,4 +85,4 @@ func deleteProcedures*(self: Dialogue, names: varargs[string])
 func `$`*(self: Dialogue): string
 ```
 
-## consts
+## lalia/consts
