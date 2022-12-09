@@ -2,8 +2,6 @@ import tables, strutils, strformat, streams, parsecsv
 import consts, utils
 
 type
-  LineError* = object of CatchableError
-
   LineKind* = enum
     Pause,
     Comment,
@@ -16,18 +14,13 @@ type
     Procedure,
     Check,
 
-  Line* = object
+  Line* = ref object
     kind*: LineKind
-    info*: string
     content*: string
 
-func newLineError*(line: Line): ref LineError =
-  ## Creates a new line error.
-  newException(LineError, &"The line is incorrect: {line}")
-
-func lineKind*(text: string): LineKind =
+func lineKind*(str: string): LineKind =
   ## Creates a new line kind from a string.
-  case text:
+  case str:
   of $Pause: Pause
   of $Comment: Comment
   of $Text: Text
@@ -40,77 +33,53 @@ func lineKind*(text: string): LineKind =
   of $Check: Check
   else: Pause
 
-func line*(kind: LineKind, info, content: string): Line =
+func newLine*(kind: LineKind, content: string): Line =
   ## Creates a new line.
-  Line(kind: kind, info: info, content: content)
-
-func lineWithNoInfo*(kind: LineKind, content: string): Line =
-  ## Creates a new line with no info.
   Line(kind: kind, content: content)
 
-func lineWithNoContent*(kind: LineKind, info: string): Line =
-  ## Creates a new line with no content.
-  Line(kind: kind, info: info)
-
-func lineWithNothing*(kind: LineKind): Line =
-  ## Creates an empty line.
-  Line(kind: kind)
-
-func lineFromArray*(data: openArray[string]): Line =
+func newLine*(data: openArray[string]): Line =
   ## Creates a new line from an array.
-  if data.len != 3:
-    return Line(kind: Pause)
-  Line(
-    kind: data[0].lineKind,
-    info: data[1],
-    content: data[2],
-  )
+  if data.len != 2:
+    newLine(Pause, "")
+  else:
+    newLine(lineKind(data[0]), data[1])
 
-proc linesFromCsv*(path: string): seq[Line] =
+proc newLinesFromCsv*(path: string): seq[Line] =
   ## Creates lines from a csv file.
   result = newSeq[Line]()
   var stream = newFileStream(path)
-  var parser: CsvParser
+  var parser = CsvParser()
   parser.open(stream, path)
   parser.readHeaderRow()
   while parser.readRow():
-    result.add(lineFromArray(parser.row))
+    result.add(newLine(parser.row))
   if result.len > 0 and result[^1].kind != Pause:
-    result.add(lineWithNothing(Pause))
+    result.add(newLine(Pause, ""))
   parser.close()
 
-func pauseLine*(): Line = lineWithNothing(Pause)
-func commentLine*(info: string): Line = lineWithNoContent(Comment, info)
-func textLine*(info, content: string): Line = line(Text, info, content)
-func textLine*(content: string): Line = lineWithNoInfo(Text, content)
-func labelLine*(info: string): Line = lineWithNoContent(Label, info)
-func jumpLine*(info: string): Line = lineWithNoContent(Jump, info)
-func menuLine*(info, content: string): Line = line(Menu, info, content)
-func menuLine*(content: string): Line = lineWithNoInfo(Menu, content)
-func variableLine*(info, content: string): Line = line(Variable, info, content)
-func variableLine*(content: string): Line = lineWithNoInfo(Variable, content)
-func calculationLine*(info, content: string): Line = line(Calculation, info, content)
-func calculationLine*(content: string): Line = lineWithNoInfo(Calculation, content)
-func procedureLine*(info, content: string): Line = line(Procedure, info, content)
-func procedureLine*(content: string): Line = lineWithNoInfo(Procedure, content)
-func checkLine*(info: string): Line = lineWithNoContent(Check, info)
+func pause*(): Line = newLine(Pause, "")
+func comment*(content: string): Line = newLine(Comment, content)
+func text*(content: string): Line = newLine(Text, content)
+func label*(content: string): Line = newLine(Label, content)
+func jump*(content: string): Line = newLine(Jump, content)
+func menu*(content: string): Line = newLine(Menu, content)
+func variable*(content: string): Line = newLine(Variable, content)
+func calculation*(content: string): Line = newLine(Calculation, content)
+func procedure*(content: string): Line = newLine(Procedure, content)
+func check*(content: string): Line = newLine(Check, content)
 
-func splitInfo*(self: Line): seq[string] =
-  ## Splits the info.
-  self.info.split(splitChar)
+func len*(self: Line): int =
+  ## Returns the length of the content.
+  self.content.len
 
 func splitContent*(self: Line): seq[string] =
-  ## Splits the content.
+  ## Returns the content split by the split character.
   self.content.split(splitChar)
 
-func replaceInfo*(self: Line, table: Table[string, string]): string =
-  ## Replaces certain words from the info with words from a table.
-  self.info.replace(variableChar, table)
-
 func replaceContent*(self: Line, table: Table[string, string]): string =
-  ## Replaces certain words from the content with words from a table.
+  ## Returns the content with certain words replaced with words from a table.
   self.content.replace(variableChar, table)
 
 func `$`*(self: Line): string =
   ## Returns a string from a line.
-  &"{self.kind},\"{self.info}\",\"{self.content}\""
+  &"{self.kind},\"{self.content}\""

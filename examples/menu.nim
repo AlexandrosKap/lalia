@@ -1,23 +1,23 @@
 import lalia, strutils
 
 var dialogue = newDialogue(
-  textLine "What should I do?",
+  text "What should I do?",
   # Jump to the label "COFFE" or "TEA".
-  menuLine "Drink coffee.|Drink tea.",
+  menu "Drink coffee.|Drink tea.",
 
-  labelLine "COFFEE",
-  textLine "I drink coffee.",
+  label "COFFEE",
+  text "I drink coffee.",
   # Jump to the next anonymous label.
-  jumpLine "",
+  jump "",
 
-  labelLine "TEA",
-  textLine "I drink tea.",
+  label "TEA",
+  text "I drink tea.",
   # Jump to the next anonymous label.
-  jumpLine "",
+  jump "",
 
   # An anonymous label.
-  labelLine "",
-  textLine "The end.",
+  label "",
+  text "The end.",
 )
 
 echo dialogue.labels

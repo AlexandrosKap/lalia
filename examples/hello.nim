@@ -1,11 +1,11 @@
 import lalia
 
 var dialogue = newDialogue(
-  textLine "Hi!",
-  jumpLine "END",
-  textLine "Please don't look at me.",
-  labelLine "END",
-  textLine "The end.",
+  text "Hi!",
+  jump "END",
+  text "Please don't look at me.",
+  label "END",
+  text "The end.",
 )
 
 while not dialogue.hasPause:

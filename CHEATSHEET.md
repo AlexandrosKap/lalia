@@ -25,32 +25,22 @@ func calculateAndConvert*(text: string): string
 Procedures
 
 ```nim
-func newLineError*(line: Line): ref LineError
-func lineKind*(text: string): LineKind
-func line*(kind: LineKind, info, content: string): Line
-func lineWithNoInfo*(kind: LineKind, content: string): Line
-func lineWithNoContent*(kind: LineKind, info: string): Line
-func lineWithNothing*(kind: LineKind): Line
-func lineFromArray*(data: openArray[string]): Line
-proc linesFromCsv*(path: string): seq[Line]
-func pauseLine*(): Line
-func commentLine*(info: string): Line
-func textLine*(info, content: string): Line
-func textLine*(content: string): Line
-func labelLine*(info: string): Line
-func jumpLine*(info: string): Line
-func menuLine*(info, content: string): Line
-func menuLine*(content: string): Line
-func variableLine*(info, content: string): Line
-func variableLine*(content: string): Line
-func calculationLine*(info, content: string): Line
-func calculationLine*(content: string): Line
-func procedureLine*(info, content: string): Line
-func procedureLine*(content: string): Line
-func checkLine*(info: string): Line
-func splitInfo*(self: Line): seq[string]
+func lineKind*(str: string): LineKind
+func newLine*(kind: LineKind, content: string): Line
+func newLine*(data: openArray[string]): Line
+proc newLinesFromCsv*(path: string): seq[Line]
+func pause*(): Line
+func comment*(content: string): Line
+func text*(content: string): Line
+func label*(content: string): Line
+func jump*(content: string): Line
+func menu*(content: string): Line
+func variable*(content: string): Line
+func calculation*(content: string): Line
+func procedure*(content: string): Line
+func check*(content: string): Line
+func len*(self: Line): int
 func splitContent*(self: Line): seq[string]
-func replaceInfo*(self: Line, table: Table[string, string]): string
 func replaceContent*(self: Line, table: Table[string, string]): string
 func `$`*(self: Line): string
 ```
@@ -65,7 +55,7 @@ proc newDialogueFromCsv*(path: string): Dialogue
 func index*(self: Dialogue): int
 func line*(self: Dialogue): Line
 func lines*(self: Dialogue): seq[Line]
-func labels*(self: Dialogue): LabelTable
+func labels*(self: Dialogue): DialogueTable[int]
 proc update*(self: Dialogue)
 proc jump*(self: Dialogue, label: string)
 proc jumpTo*(self: Dialogue, index: int)
@@ -78,10 +68,6 @@ proc choose*(self: Dialogue, choice: int)
 proc reset*(self: Dialogue)
 proc changeLines*(self: Dialogue, lines: varargs[Line])
 proc changeLinesFromCsv*(self: Dialogue, path: string)
-func addVariables*(self: Dialogue, table: VariableTable)
-func deleteVariables*(self: Dialogue, names: varargs[string])
-func addProcedures*(self: Dialogue, table: ProcedureTable)
-func deleteProcedures*(self: Dialogue, names: varargs[string])
 func `$`*(self: Dialogue): string
 ```
 

@@ -4,9 +4,9 @@ proc ghostProc(text: string): string =
   "BoOoOoOooo"
 
 var dialogue = newDialogue(
-  textLine "Im a ghost!",
-  procedureLine "ghostProc",
-  textLine "$_",
+  text "Im a ghost!",
+  procedure "ghostProc",
+  text "$_",
 )
 dialogue.procedures["ghostProc"] = ghostProc
 

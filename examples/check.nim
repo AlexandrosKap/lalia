@@ -1,23 +1,23 @@
 import lalia, strutils
 
 var dialogue = newDialogue(
-  labelLine "START",
-  textLine "Say yes!",
-  menuLine "Yes.|No.",
+  label "START",
+  text "Say yes!",
+  menu "Yes.|No.",
 
-  labelLine "YES",
-  calculationLine "$_ + 1",
-  jumpLine "START",
+  label "YES",
+  calculation "$_ + 1",
+  jump "START",
 
-  labelLine "NO",
-  textLine "...",
+  label "NO",
+  text "...",
   # If "_" is not 0, then skip the next line."
-  checkLine "$_ = 0",
-  textLine "Ok.",
-  checkLine "$_ = 1",
-  textLine "You said yes 1 time.",
-  checkLine "$_ > 1",
-  textLine "You said yes $_ times.",
+  check "$_ = 0",
+  text "Ok.",
+  check "$_ = 1",
+  text "You said yes 1 time.",
+  check "$_ > 1",
+  text "You said yes $_ times.",
 )
 
 while not dialogue.hasPause:

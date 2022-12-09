@@ -2,115 +2,104 @@ import tables, strutils
 import consts, utils, line
 
 type
-  DialogueProcedure* = proc(text: string): string
-
+  DialogueProc* = proc(str: string): string
   DialogueTable*[T] = Table[string, T]
-  LabelTable* = DialogueTable[int]
-  VariableTable* = DialogueTable[string]
-  ProcedureTable* = DialogueTable[DialogueProcedure]
 
   Dialogue* = ref object
     index: int
     lines: seq[Line]
-    labels: LabelTable
-    variables*: VariableTable
-    procedures*: ProcedureTable
+    labels: DialogueTable[int]
+    variables*: DialogueTable[string]
+    procedures*: DialogueTable[DialogueProc]
 
-func defaultVariables(): VariableTable =
-  ## Creates the default variables value.
-  result = VariableTable()
+func initVariables(): DialogueTable[string] =
+  ## Creates the default variables of a dialogue.
+  result = DialogueTable[string]()
   result[amoonguss] = "0"
-
-func setIndex(self: Dialogue, value: int)
-proc refresh(self: Dialogue)
-
-template setIndexAndRefresh(self: Dialogue, value: int) =
-  ## Helper template to avoid typing the same thing again and again.
-  self.setIndex(value)
-  self.refresh()
 
 func setIndex(self: Dialogue, value: int) =
   ## Sets the index to a new value.
-  if value >= self.lines.len: self.index = self.lines.len - 1
-  elif value < 0: self.index = 0
-  else: self.index = value
+  if value >= self.lines.len:
+    self.index = self.lines.len - 1
+  elif value < 0:
+    self.index = 0
+  else:
+    self.index = value
 
 proc refresh(self: Dialogue) =
   ## Reloads the current line until a valid line is found.
-  let simpleLine = self.lines[self.index]
-  let line = Line(
-    kind: simpleLine.kind,
-    info: simpleLine.replaceInfo(self.variables),
-    content: simpleLine.replaceContent(self.variables),
-  )
+  let line = self.lines[self.index]
   case line.kind:
   of Comment, Label:
-    self.setIndexAndRefresh(self.index + 1)
+    self.setIndex(self.index + 1)
+    self.refresh()
   of Jump:
-    if line.info.len == 0:
+    if line.len == 0:
       var i = self.index + 1
       while true:
         if i >= self.lines.len:
-          self.setIndexAndRefresh(self.lines.len - 1)
+          self.setIndex(self.lines.len - 1)
           break
         elif self.lines[i].kind == Label:
-          let label = self.lines[i].info
-          if label.startsWith(amoonguss) and label in self.labels:
-            self.setIndexAndRefresh(self.labels[label])
+          let content = self.lines[i].content
+          if content.startsWith(amoonguss) and content in self.labels:
+            self.setIndex(self.labels[content])
             break
         i += 1
-    elif line.info in self.labels:
-      self.setIndexAndRefresh(self.labels[line.info])
+    elif line.content in self.labels:
+      self.setIndex(self.labels[line.content])
     else:
-      self.setIndexAndRefresh(self.index + 1)
+      self.setIndex(self.index + 1)
+    self.refresh()
   of Variable:
-    let name = if line.info.len != 0: line.info else: amoonguss
+    let name = if line.len == 0: amoonguss else: line.content
     self.variables[name] = line.content
-    self.setIndexAndRefresh(self.index + 1)
+    self.setIndex(self.index + 1)
+    self.refresh()
   of Check:
-    try:
-      if line.info.calculate != 0:
-        self.setIndexAndRefresh(self.index + 1)
-      else:
-        self.setIndexAndRefresh(self.index + 2)
-    except:
-      self.setIndexAndRefresh(self.index + 2)
+    if calculateAndConvert(line.content) != "":
+      self.setIndex(self.index + 1)
+    else:
+      self.setIndex(self.index + 2)
+    self.refresh()
   of Calculation:
-    let name = if line.info.len != 0: line.info else: amoonguss
+    let name = if line.len == 0: amoonguss else: line.content
     if name in self.variables:
-      self.variables[name] = line.content.calculateAndConvert()
-    self.setIndexAndRefresh(self.index + 1)
+      self.variables[name] = calculateAndConvert(line.content)
+    self.setIndex(self.index + 1)
+    self.refresh()
   of Procedure:
-    let name = if line.info.len != 0: line.info else: amoonguss
+    let name = if line.len == 0: amoonguss else: line.content
     let start = line.content.find(' ')
-    if start > 0 and start < line.content.len - 1:
-      let procedureName = line.content[0 ..< start]
-      let procedureText = line.content[start + 1 .. ^1]
-      if name in self.variables and procedureName in self.procedures:
-        self.variables[name] = self.procedures[procedureName](procedureText)
+    if start > 0 and start < line.len - 1:
+      let procName = line.content[0 ..< start]
+      let procText = line.content[start + 1 .. ^1]
+      if name in self.variables and procName in self.procedures:
+        self.variables[name] = self.procedures[procName](procText)
     elif name in self.variables and line.content in self.procedures:
       self.variables[name] = self.procedures[line.content]("")
-    self.setIndexAndRefresh(self.index + 1)
+    self.setIndex(self.index + 1)
+    self.refresh()
   of Pause, Text, Menu:
     discard
 
 proc newDialogue*(lines: varargs[Line]): Dialogue =
   ## Creates a new dialogue.
-  result = Dialogue(variables: defaultVariables())
+  result = Dialogue(variables: initVariables())
   for i, line in lines:
     result.lines.add(line)
     if line.kind == Label:
-      if line.info.len == 0:
+      if line.len == 0:
         result.labels[amoonguss & intToStr(i)] = i
       else:
-        result.labels[line.info] = i
+        result.labels[line.content] = i
   if lines.len > 0 and lines[^1].kind != Pause:
-    result.lines.add(pauseLine())
+    result.lines.add(pause())
   result.refresh()
 
 proc newDialogueFromCsv*(path: string): Dialogue =
   ## Creates a new dialogue from a csv file.
-  newDialogue(linesFromCsv(path))
+  newDialogue(newLinesFromCsv(path))
 
 func index*(self: Dialogue): int =
   ## Returns the index.
@@ -120,31 +109,33 @@ func line*(self: Dialogue): Line =
   ## Returns the current line.
   let line = self.lines[self.index]
   Line(
-    info: line.replaceInfo(self.variables),
-    content: line.replaceContent(self.variables),
     kind: line.kind,
+    content: line.replaceContent(self.variables),
   )
 
 func lines*(self: Dialogue): seq[Line] =
   ## Returns the lines.
   self.lines
 
-func labels*(self: Dialogue): LabelTable =
+func labels*(self: Dialogue): DialogueTable[int] =
   ## Returns the labels.
   self.labels
 
 proc update*(self: Dialogue) =
   ## Updates the dialogue.
-  self.setIndexAndRefresh(self.index + 1)
+  self.setIndex(self.index + 1)
+  self.refresh()
 
 proc jump*(self: Dialogue, label: string) =
   ## Changes the current line by using a label.
   if label in self.labels:
-    self.setIndexAndRefresh(self.labels[label])
+    self.setIndex(self.labels[label])
+    self.refresh()
 
 proc jumpTo*(self: Dialogue, index: int) =
   ## Changes the current line to a specific line.
-  self.setIndexAndRefresh(index)
+  self.setIndex(index)
+  self.refresh()
 
 proc jumpToStart*(self: Dialogue) =
   ## Changes the current line to the starting line.
@@ -171,30 +162,25 @@ func choices*(self: Dialogue): seq[string] =
 
 proc choose*(self: Dialogue, choice: int) =
   ## Selects an choice from the current choices.
-  let line = self.line
-  if line.info.len == 0:
-    # TODO: Fix bug with anonymous labels.
-    var labelCount = 0
-    var i = self.index + 1
-    while true:
-      if i >= self.lines.len:
-        self.jumpToEnd()
+  var labelCount = 0
+  var i = self.index + 1
+  # TODO: Fix bug with anonymous labels.
+  while true:
+    if i >= self.lines.len:
+      self.jumpToEnd()
+      break
+    elif self.lines[i].kind == Label:
+      labelCount += 1
+      if labelCount == choice + 1:
+        let label = self.lines[i].content # TODO
+        self.jump(label)
         break
-      elif self.lines[i].kind == Label:
-        labelCount += 1
-        if labelCount == choice + 1:
-          self.jump(self.lines[i].info)
-          break
-      i += 1
-  else:
-    let choices = line.splitInfo()
-    if line.kind == Menu and choice < choices.len:
-      self.jump(choices[choice])
+    i += 1
 
 proc reset*(self: Dialogue) =
   ## Resets the dialogue to its original state.
   ## All variables will be deleted and the index is set to the first valid line.
-  self.variables = defaultVariables()
+  self.variables = initVariables()
   self.jumpToStart()
 
 proc changeLines*(self: Dialogue, lines: varargs[Line]) =
@@ -204,49 +190,17 @@ proc changeLines*(self: Dialogue, lines: varargs[Line]) =
   for i, line in lines:
     self.lines.add(line)
     if line.kind == Label:
-      if line.info.len == 0:
+      if line.len == 0:
         self.labels[amoonguss & intToStr(i)] = i
       else:
-        self.labels[line.info] = i
+        self.labels[line.content] = i
   if lines.len > 0 and lines[^1].kind != Pause:
-    self.lines.add(pauseLine())
+    self.lines.add(pause())
   self.jumpToStart()
 
 proc changeLinesFromCsv*(self: Dialogue, path: string) =
   ## Changes the lines of the dialogue with lines from a csv file.
-  self.changeLines(linesFromCsv(path))
-
-template addThing[T](self: Dialogue, table, property: DialogueTable[T]) =
-  ## Helper template to add new things to the dialogue property.
-  for key, value in table:
-    if not property.hasKey(key):
-      property[key] = value
-
-template deleteThing[T](
-    self: Dialogue,
-    keys: varargs[string],
-    property: DialogueTable[T]
-  ) =
-  ## Helper template to delete things from the dialogue property.
-  for key in keys:
-    if property.hasKey(key):
-      property.del(key)
-
-func addVariables*(self: Dialogue, table: VariableTable) =
-  ## Adds new variables to the dialogue.
-  self.addThing(table, self.variables)
-
-func deleteVariables*(self: Dialogue, names: varargs[string]) =
-  ## Deletes variables from the dialogue.
-  self.deleteThing(names, self.variables)
-
-func addProcedures*(self: Dialogue, table: ProcedureTable) =
-  ## Adds new procedures to the dialogue.
-  self.addThing(table, self.procedures)
-
-func deleteProcedures*(self: Dialogue, names: varargs[string]) =
-  ## Deletes procedures from the dialogue.
-  self.deleteThing(names, self.procedures)
+  self.changeLines(newLinesFromCsv(path))
 
 func `$`*(self: Dialogue): string =
   ## Returns a string from a dialogue.
